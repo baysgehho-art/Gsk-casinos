@@ -1,0 +1,687 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --bg: #07050d;
+    --card: #100c1b;
+    --purple: #a855f7;
+    --purple-light: #d8a4ff;
+    --gold: #ffd35a;
+    --gold-light: #fff0a8;
+    --text: #ffffff;
+    --muted: #817b91;
+    --green: #62ffb0;
+    --red: #ff5277;
+}
+
+html,
+body {
+    min-height: 100%;
+    background: var(--bg);
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+
+    background:
+        radial-gradient(
+            circle at 50% -10%,
+            rgba(168, 85, 247, .22),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at 100% 70%,
+            rgba(255, 211, 90, .08),
+            transparent 30%
+        ),
+        #07050d;
+}
+
+button {
+    font-family: inherit;
+    border: 0;
+    cursor: pointer;
+}
+
+.app {
+    width: 100%;
+    max-width: 520px;
+    min-height: 100vh;
+    margin: auto;
+    padding: 16px 14px 28px;
+}
+
+/* HEADER */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.logo {
+    display: flex;
+    flex-direction: column;
+    line-height: .9;
+}
+
+.logo span {
+    font-size: 25px;
+    font-weight: 900;
+    letter-spacing: 2px;
+
+    background: linear-gradient(
+        135deg,
+        var(--gold),
+        #fff,
+        var(--purple-light)
+    );
+
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.logo small {
+    margin-top: 5px;
+    color: var(--purple-light);
+    font-size: 9px;
+    letter-spacing: 4px;
+    font-weight: 800;
+}
+
+.balance-box {
+    padding: 8px 13px;
+    border: 1px solid rgba(255, 211, 90, .25);
+    border-radius: 12px;
+    background: rgba(255,255,255,.035);
+    box-shadow: 0 0 20px rgba(255,211,90,.05);
+    text-align: right;
+}
+
+.balance-label {
+    display: block;
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 1.5px;
+}
+
+.balance-box strong {
+    color: var(--gold);
+    font-size: 19px;
+}
+
+.coin {
+    color: var(--gold-light);
+    margin-left: 2px;
+}
+
+/* GAME CARD */
+
+.game-card,
+.history-card {
+    border: 1px solid rgba(168, 85, 247, .22);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(168,85,247,.08),
+            rgba(255,211,90,.025)
+        ),
+        rgba(12, 9, 20, .95);
+
+    border-radius: 24px;
+    box-shadow:
+        0 20px 70px rgba(0,0,0,.5),
+        inset 0 1px rgba(255,255,255,.04);
+}
+
+.game-card {
+    padding: 20px 14px 18px;
+}
+
+.game-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.game-title h1 {
+    flex: 1;
+    text-align: center;
+    font-size: clamp(20px, 7vw, 29px);
+    font-weight: 950;
+    letter-spacing: 1px;
+
+    background: linear-gradient(
+        90deg,
+        var(--gold),
+        white,
+        var(--purple-light),
+        var(--gold)
+    );
+
+    background-size: 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+
+    animation: titleGlow 4s linear infinite;
+}
+
+@keyframes titleGlow {
+    to {
+        background-position: 200%;
+    }
+}
+
+.line {
+    width: 35px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--purple)
+    );
+}
+
+.line:last-child {
+    background: linear-gradient(
+        90deg,
+        var(--gold),
+        transparent
+    );
+}
+
+.subtitle {
+    text-align: center;
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 5px;
+}
+
+/* SLOT */
+
+.slot-machine {
+    position: relative;
+    margin: 25px auto 14px;
+    max-width: 390px;
+    padding: 12px;
+
+    border-radius: 21px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #1c1428,
+            #09070e
+        );
+
+    border: 1px solid rgba(255,211,90,.25);
+
+    box-shadow:
+        0 0 25px rgba(168,85,247,.15),
+        inset 0 0 25px rgba(0,0,0,.8);
+}
+
+.slot-glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: 23px;
+    pointer-events: none;
+
+    box-shadow:
+        0 0 25px rgba(168,85,247,.12),
+        0 0 50px rgba(255,211,90,.04);
+}
+
+.reels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.reel {
+    position: relative;
+    height: clamp(85px, 25vw, 125px);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #191322,
+            #08070c
+        );
+
+    border: 1px solid rgba(255,255,255,.07);
+
+    box-shadow:
+        inset 0 5px 15px rgba(0,0,0,.6),
+        inset 0 -5px 15px rgba(0,0,0,.6);
+}
+
+.reel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: linear-gradient(
+        180deg,
+        rgba(255,255,255,.09),
+        transparent 28%,
+        transparent 72%,
+        rgba(0,0,0,.25)
+    );
+
+    pointer-events: none;
+}
+
+.reel-inner {
+    position: relative;
+    z-index: 2;
+    font-size: clamp(43px, 13vw, 70px);
+    line-height: 1;
+
+    filter:
+        drop-shadow(0 0 8px rgba(255,255,255,.25));
+
+    transition: transform .1s;
+}
+
+.reel.spinning .reel-inner {
+    animation: reelSpin .12s linear infinite;
+}
+
+@keyframes reelSpin {
+    0% {
+        transform: translateY(-35px) rotateX(0deg);
+        opacity: .35;
+    }
+
+    50% {
+        transform: translateY(0) rotateX(180deg);
+        opacity: .8;
+    }
+
+    100% {
+        transform: translateY(35px) rotateX(360deg);
+        opacity: .35;
+    }
+}
+
+.reel.win {
+    border-color: var(--gold);
+    box-shadow:
+        0 0 15px rgba(255,211,90,.45),
+        inset 0 0 25px rgba(255,211,90,.12);
+}
+
+.reel.win .reel-inner {
+    animation: winner .7s ease infinite alternate;
+}
+
+@keyframes winner {
+    from {
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px var(--gold));
+    }
+
+    to {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 25px var(--gold));
+    }
+}
+
+/* RESULT */
+
+.result {
+    min-height: 32px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--muted);
+}
+
+.result.win {
+    color: var(--gold);
+    text-shadow: 0 0 15px rgba(255,211,90,.5);
+}
+
+.result.lose {
+    color: var(--red);
+}
+
+/* BET */
+
+.bet-section {
+    margin-top: 10px;
+}
+
+.bet-label {
+    text-align: center;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+}
+
+.bet-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+.bet-btn {
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+
+    color: white;
+    font-size: 25px;
+    font-weight: 300;
+
+    background: rgba(168,85,247,.12);
+    border: 1px solid rgba(168,85,247,.4);
+
+    box-shadow: 0 0 15px rgba(168,85,247,.08);
+
+    transition: .15s;
+}
+
+.bet-btn:active {
+    transform: scale(.88);
+}
+
+.bet-value {
+    width: 110px;
+    text-align: center;
+}
+
+.bet-value span {
+    font-size: 27px;
+    font-weight: 900;
+    color: white;
+}
+
+.bet-value small {
+    display: block;
+    margin-top: -2px;
+    color: var(--muted);
+    font-size: 9px;
+}
+
+.quick-bets {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.quick-bets button {
+    min-width: 47px;
+    padding: 7px 9px;
+
+    color: var(--purple-light);
+    background: rgba(168,85,247,.07);
+
+    border: 1px solid rgba(168,85,247,.2);
+    border-radius: 8px;
+
+    font-size: 11px;
+}
+
+.quick-bets button:active {
+    transform: scale(.94);
+}
+
+/* SPIN BUTTON */
+
+.spin-btn {
+    width: 100%;
+    margin-top: 18px;
+    padding: 16px;
+
+    border-radius: 14px;
+
+    color: #0b0710;
+    font-size: 16px;
+    font-weight: 950;
+    letter-spacing: 2px;
+
+    background: linear-gradient(
+        135deg,
+        var(--gold),
+        var(--gold-light),
+        var(--gold)
+    );
+
+    box-shadow:
+        0 8px 30px rgba(255,211,90,.18),
+        inset 0 1px white;
+
+    transition: .15s;
+}
+
+.spin-btn:hover {
+    box-shadow:
+        0 8px 40px rgba(255,211,90,.35),
+        inset 0 1px white;
+}
+
+.spin-btn:active {
+    transform: scale(.97);
+}
+
+.spin-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.spin-icon {
+    display: inline-block;
+    margin-right: 7px;
+    font-size: 19px;
+}
+
+.spin-btn.spinning .spin-icon {
+    animation: rotateButton .5s linear infinite;
+}
+
+@keyframes rotateButton {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* RULES */
+
+.rules {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+
+    margin-top: 15px;
+    padding-top: 14px;
+
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.rules div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.rules b {
+    font-size: 14px;
+}
+
+.rules span {
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+/* HISTORY */
+
+.history-card {
+    margin-top: 14px;
+    padding: 15px;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-header h2 {
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.history-header button {
+    color: var(--muted);
+    background: transparent;
+    font-size: 10px;
+}
+
+.history {
+    margin-top: 12px;
+}
+
+.empty-history {
+    padding: 18px 5px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 10px 8px;
+
+    border-bottom: 1px solid rgba(255,255,255,.045);
+}
+
+.history-symbols {
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+.history-info {
+    text-align: right;
+}
+
+.history-info small {
+    display: block;
+    color: var(--muted);
+    font-size: 8px;
+}
+
+.history-win {
+    color: var(--green);
+    font-weight: 900;
+    font-size: 12px;
+}
+
+.history-loss {
+    color: var(--red);
+    font-weight: 900;
+    font-size: 12px;
+}
+
+/* FOOTER */
+
+footer {
+    text-align: center;
+    margin-top: 18px;
+    color: #403b4b;
+    font-size: 8px;
+    letter-spacing: 2px;
+}
+
+/* CONFETTI */
+
+#confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.confetti-piece {
+    position: absolute;
+    width: 7px;
+    height: 12px;
+    top: -20px;
+
+    animation: fall 1.8s ease-out forwards;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(0) rotate(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(105vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* MOBILE */
+
+@media (max-width: 360px) {
+
+    .app {
+        padding-left: 9px;
+        padding-right: 9px;
+    }
+
+    .game-card {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .game-title h1 {
+        font-size: 20px;
+    }
+
+    .reels {
+        gap: 5px;
+    }
+
+    .reel {
+        height: 88px;
+    }
+
+    .reel-inner {
+        font-size: 43px;
+    }
+
+    .rules b {
+        font-size: 11px;
+    }
+}

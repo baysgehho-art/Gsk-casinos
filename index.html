@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>GSK CASINO</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Telegram Mini App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header class="header">
+        <div class="logo">
+            <span>GSK</span>
+            <small>CASINO</small>
+        </div>
+
+        <div class="balance-box">
+            <span class="balance-label">БАЛАНС</span>
+            <strong id="balance">1000</strong>
+            <span class="coin">✦</span>
+        </div>
+    </header>
+
+    <main>
+
+        <section class="game-card">
+
+            <div class="game-title">
+                <span class="line"></span>
+                <h1>GSK CASINO</h1>
+                <span class="line"></span>
+            </div>
+
+            <p class="subtitle">VIRTUAL SLOTS</p>
+
+            <div class="slot-machine">
+
+                <div class="slot-glow"></div>
+
+                <div class="reels" id="reels">
+
+                    <div class="reel">
+                        <div class="reel-inner" id="reel1">💎</div>
+                    </div>
+
+                    <div class="reel">
+                        <div class="reel-inner" id="reel2">7️⃣</div>
+                    </div>
+
+                    <div class="reel">
+                        <div class="reel-inner" id="reel3">🍒</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="result" class="result">
+                Сделай свою ставку
+            </div>
+
+            <div class="bet-section">
+
+                <div class="bet-label">СТАВКА</div>
+
+                <div class="bet-control">
+
+                    <button id="minusBtn" class="bet-btn">−</button>
+
+                    <div class="bet-value">
+                        <span id="bet">10</span>
+                        <small>очков</small>
+                    </div>
+
+                    <button id="plusBtn" class="bet-btn">+</button>
+
+                </div>
+
+                <div class="quick-bets">
+                    <button data-bet="10">10</button>
+                    <button data-bet="25">25</button>
+                    <button data-bet="50">50</button>
+                    <button data-bet="100">100</button>
+                </div>
+
+            </div>
+
+            <button id="spinBtn" class="spin-btn">
+                <span class="spin-icon">↻</span>
+                КРУТИТЬ
+            </button>
+
+            <div class="rules">
+                <div>
+                    <b>💎 💎 💎</b>
+                    <span>x10</span>
+                </div>
+
+                <div>
+                    <b>⭐ ⭐</b>
+                    <span>x2</span>
+                </div>
+
+                <div>
+                    <b>Любые 2 одинаковых</b>
+                    <span>x2</span>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="history-card">
+
+            <div class="history-header">
+                <h2>ИСТОРИЯ ИГР</h2>
+                <button id="clearHistory">Очистить</button>
+            </div>
+
+            <div id="history" class="history">
+                <div class="empty-history">
+                    Здесь появятся результаты вращений
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+        GSK CASINO • VIRTUAL GAME
+    </footer>
+
+</div>
+
+<div id="confetti"></div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
