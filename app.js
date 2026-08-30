@@ -38,7 +38,9 @@ function saveGame() {
 }
 
 function loadGame() {
-    const savedBalance = localStorage.getItem("gsk_casino_balance");
+    // Start without the previous demo balance.
+    localStorage.removeItem("gsk_casino_balance");
+    const savedBalance = null;
     const savedBet = localStorage.getItem("gsk_casino_bet");
     if (savedBalance !== null) {
         balance = Number(savedBalance);
