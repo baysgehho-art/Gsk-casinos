@@ -1,149 +1,145 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <title>GSK CASINO</title>
-
-    <link rel="stylesheet" href="style.css">
-
-    <!-- Telegram Mini App -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Lucky Spin</title>
+<meta name="theme-color" content="#0a0612" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
-
 <body>
 
-<div class="app">
+<div class="bg-glow bg-glow--a"></div>
+<div class="bg-glow bg-glow--b"></div>
+<div class="bg-noise"></div>
 
-    <header class="header">
-        <div class="logo">
-            <span>GSK</span>
-            <small>CASINO</small>
+<canvas id="confetti-canvas"></canvas>
+
+<div id="app">
+
+  <!-- ===== HEADER ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__icon">🎰</span>
+      <span class="brand__name">LUCKY<span class="brand__accent">SPIN</span></span>
+    </div>
+
+    <div class="topbar__right">
+      <button id="soundToggle" class="icon-btn" title="Звук" aria-label="Переключить звук">
+        <svg id="soundIconOn" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 10v4h4l5 5V5L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4.03v8.06A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        <svg id="soundIconOff" viewBox="0 0 24 24" width="18" height="18" style="display:none"><path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+      </button>
+      <div class="round-timer" id="roundTimerWrap" title="Таймер раунда">
+        <svg viewBox="0 0 40 40" class="round-timer__ring">
+          <circle cx="20" cy="20" r="17" class="round-timer__track"></circle>
+          <circle cx="20" cy="20" r="17" class="round-timer__prog" id="timerRing"></circle>
+        </svg>
+        <span id="timerLabel" class="round-timer__label">30</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== BANK ===== -->
+  <section class="bank-card glass">
+    <div class="bank-card__row">
+      <div class="bank-card__item">
+        <span class="bank-card__label">Банк раунда</span>
+        <span class="bank-card__value" \$0</span>
+      </div>
+      <div class="bank-card__divider"></div>
+      <div class="bank-card__item">
+        <span class="bank-card__label">Ваш баланс</span>
+        <span class="bank-card__value bank-card__value--gold" \$1000</span>
+      </div>
+    </div>
+    <div class="bank-card__meta" id="participantsCount">Участников: 0</div>
+  </section>
+
+  <!-- ===== REEL ===== -->
+  <section class="reel-shell glass">
+    <div class="reel-shell__blur" id="reelBlur"></div>
+    <div class="pointer" id="pointer">
+      <div class="pointer__glow"></div>
+      <div class="pointer__tri"></div>
+      <div class="pointer__line"></div>
+    </div>
+    <div class="reel-viewport">
+      <div class="reel-track" id="reelTrack">
+        <div class="reel-empty" id="reelEmpty">
+          <span class="reel-empty__icon">🎴</span>
+          <span>Добавьте участников, чтобы начать спин</span>
         </div>
+      </div>
+    </div>
+    <div class="reel-shell__fade reel-shell__fade--l"></div>
+    <div class="reel-shell__fade reel-shell__fade--r"></div>
+  </section>
 
-        <div class="balance-box">
-            <span class="balance-label">БАЛАНС</span>
-            <strong id="balance">0</strong>
-            <span class="coin">USDT / $</span>
-        </div>
-    </header>
+  <!-- ===== WINNER BANNER ===== -->
+  <section class="winner-banner" id="winnerBanner">
+    <div class="winner-banner__avatar" id="winnerAvatar"></div>
+    <div class="winner-banner__text">
+      <span class="winner-banner__label">Победитель</span>
+      <span class="winner-banner__name" id="winnerName">—</span>
+      <span class="winner-banner__prize" \$0</span>
+    </div>
+  </section>
 
-    <main>
+  <!-- ===== BET FORM ===== -->
+  <section class="bet-panel glass">
+    <h2 class="section-title">Сделать ставку</h2>
+    <div class="bet-panel__form">
+      <input type="text" id="nickInput" class="bet-input" placeholder="Ник зрителя" maxlength="16" autocomplete="off" />
+      <input type="number" id="betInput" class="bet-input bet-input--num" placeholder="Ставка" min="1" value="10" />
+    </div>
+    <div class="bet-panel__quick" id="quickBets">
+      <button class="chip-btn" data-amt="10">+10</button>
+      <button class="chip-btn" data-amt="25">+25</button>
+      <button class="chip-btn" data-amt="50">+50</button>
+      <button class="chip-btn" data-amt="100">+100</button>
+    </div>
+    <button id="addBetBtn" class="btn btn--primary">
+      <span>Поставить</span>
+    </button>
+    <div class="bet-panel__actions">
+      <button id="botBtn" class="btn btn--ghost">🤖 Добавить зрителя-бота</button>
+      <button id="spinBtn" class="btn btn--gold" disabled>
+        <span id="spinBtnLabel">Крутить сейчас</span>
+      </button>
+    </div>
+  </section>
 
-        <section class="game-card">
+  <!-- ===== PARTICIPANTS ===== -->
+  <section class="participants glass" id="participantsSection">
+    <h2 class="section-title">Участники раунда</h2>
+    <div class="participants__list" id="participantsList">
+      <div class="empty-hint">Пока никто не поставил</div>
+    </div>
+  </section>
 
-            <div class="game-title">
-                <span class="line"></span>
-                <h1>GSK CASINO</h1>
-                <span class="line"></span>
-            </div>
-
-            <p class="subtitle">VIRTUAL SLOTS</p>
-
-            <div class="slot-machine">
-
-                <div class="slot-glow"></div>
-
-                <div class="reels" id="reels">
-
-                    <div class="reel">
-                        <div class="reel-inner" id="reel1">💎</div>
-                    </div>
-
-                    <div class="reel">
-                        <div class="reel-inner" id="reel2">7️⃣</div>
-                    </div>
-
-                    <div class="reel">
-                        <div class="reel-inner" id="reel3">🍒</div>
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div id="result" class="result">
-                Сделай свою ставку
-            </div>
-
-            <div class="bet-section">
-
-                <div class="bet-label">СТАВКА</div>
-
-                <div class="bet-control">
-
-                    <button id="minusBtn" class="bet-btn">−</button>
-
-                    <div class="bet-value">
-                        <span id="bet">10</span>
-                        <small>очков</small>
-                    </div>
-
-                    <button id="plusBtn" class="bet-btn">+</button>
-
-                </div>
-
-                <div class="quick-bets">
-                    <button data-bet="10">10</button>
-                    <button data-bet="25">25</button>
-                    <button data-bet="50">50</button>
-                    <button data-bet="100">100</button>
-                </div>
-
-            </div>
-
-            <button id="spinBtn" class="spin-btn">
-                <span class="spin-icon">↻</span>
-                КРУТИТЬ
-            </button>
-
-            <div class="rules">
-                <div>
-                    <b>💎 💎 💎</b>
-                    <span>x10</span>
-                </div>
-
-                <div>
-                    <b>USDT USDT</b>
-                    <span>x2</span>
-                </div>
-
-                <div>
-                    <b>Любые 2 одинаковых</b>
-                    <span>x2</span>
-                </div>
-            </div>
-
-        </section>
-
-        <section class="history-card">
-
-            <div class="history-header">
-                <h2>ИСТОРИЯ ИГР</h2>
-                <button id="clearHistory">Очистить</button>
-            </div>
-
-            <div id="history" class="history">
-                <div class="empty-history">
-                    Здесь появятся результаты вращений
-                </div>
-            </div>
-
-        </section>
-
-    </main>
-
-    <footer>
-        GSK CASINO • VIRTUAL GAME
-    </footer>
-
+  <!-- ===== TABS: HISTORY / LEADERBOARD ===== -->
+  <section class="tabs glass">
+    <div class="tabs__head">
+      <button class="tabs__btn is-active" data-tab="history">История раундов</button>
+      <button class="tabs__btn" data-tab="leaders">🏆 Топ игроков</button>
+    </div>
+    <div class="tabs__body">
+      <div class="tab-panel is-active" id="tab-history">
+        <div class="empty-hint" id="historyEmpty">Раундов ещё не было</div>
+        <div class="history-list" id="historyList"></div>
+      </div>
+      <div class="tab-panel" id="tab-leaders">
+        <div class="empty-hint" id="leadersEmpty">Нет данных</div>
+        <div class="leaders-list" id="leadersList"></div>
+      </div>
+    </div>
+  </section>
 </div>
 
-<div id="confetti"></div>
-
 <script src="app.js"></script>
-
 </body>
 </html>
