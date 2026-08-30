@@ -427,6 +427,14 @@ async function sendBet(amount) {
     bet = Math.floor(Number(bet));
     if (!bet || bet < CFG.MIN_BET) { shake(el.betInput); return; }
     if (round.spinning) return;
+      // Отправляем ставку на сервер
+if (myUserId) {
+    sendBet(bet).then(result => {
+        if (result && !result.success) {
+            flashInsufficient();
+        }
+    });
+}
 
     const player = ensurePlayer(name);
     if (player.balance < bet) { shake(el.betInput); flashInsufficient(); return; }
