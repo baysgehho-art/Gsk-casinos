@@ -7,7 +7,7 @@
 (() => {
   'use strict';
 
-  const SERVER_URL = "https://ЗАМЕНИ-НА-СВОЙ-АДРЕС.pythonanywhere.com";
+  const SERVER_URL = "https://lagger.pythonanywhere.com";
 
   /* ---------------------------------------------------------------------
      Telegram WebApp integration (safe no-op outside Telegram)
