@@ -1,6 +1,6 @@
 /* ==========================================================================
    LUCKY SPIN — app.js
-========================================================================== */
+   ========================================================================== */
 (() => {
   'use strict';
 
@@ -642,7 +642,7 @@
     // UI
     el.winnerAvatar.innerHTML = `<img src="${avatarUri(winner.name)}" alt="">`;
     el.winnerName.textContent = winner.name;
-    el.winnerPrize.textContent = `${fmt(prize)} · комиссия ${Math.round(rate * 100)}%`;
+    el.winnerPrize.textContent = `+${fmt(prize)} USDT · комиссия ${Math.round(rate * 100)}%`;
     el.winnerBanner.classList.add('is-visible');
 
     fireConfetti();

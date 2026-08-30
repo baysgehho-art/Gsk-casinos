@@ -48,12 +48,12 @@
     <div class="bank-card__row">
       <div class="bank-card__item">
         <span class="bank-card__label">Банк раунда</span>
-        <span class="bank-card__value" \$0</span>
+        <span class="bank-card__value" id="bankValue">$0</span>
       </div>
       <div class="bank-card__divider"></div>
       <div class="bank-card__item">
         <span class="bank-card__label">Ваш баланс</span>
-        <span class="bank-card__value bank-card__value--gold" \$1000</span>
+        <span class="bank-card__value bank-card__value--gold" id="myBalance">$1000</span>
       </div>
     </div>
     <div class="bank-card__meta" id="participantsCount">Участников: 0</div>
@@ -85,7 +85,7 @@
     <div class="winner-banner__text">
       <span class="winner-banner__label">Победитель</span>
       <span class="winner-banner__name" id="winnerName">—</span>
-      <span class="winner-banner__prize" \$0</span>
+      <span class="winner-banner__prize" id="winnerPrize">+$0 USDT</span>
     </div>
   </section>
 
@@ -138,6 +138,7 @@
       </div>
     </div>
   </section>
+
 </div>
 
 <script src="app.js"></script>
