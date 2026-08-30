@@ -5,7 +5,15 @@
 
 const symbols = ["💎", "7️⃣", "🍒", "USDT", "🔔", "🍋", "$ "];
 
-let balance = 0;
+let balance = 1000;
+// Получаем баланс из Telegram
+const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+if (tgUser) {
+    const userId = tgUser.id;
+    // Здесь будет запрос к боту
+    fetch(`https://api.telegram.org/bot8958118626:AAEVzhrmWLIM9xfn739yVe2WqaepOdLegdk/sendMessage?chat_id=${userId}&text=/get_balance`)
+        .catch(() => {});
+}
 let bet = 10;
 let spinning = false;
 
