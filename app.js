@@ -7,7 +7,7 @@
 (() => {
   'use strict';
 
-  const SERVER_URL = "https://lagger.pythonanywhere.com";
+  const SERVER_URL = "https://ЗАМЕНИ-НА-СВОЙ-АДРЕС.pythonanywhere.com";
 
   /* ---------------------------------------------------------------------
      Telegram WebApp integration (safe no-op outside Telegram)
@@ -24,9 +24,14 @@
 
   let myUserId = null;
   let myUsername = 'Player';
+  let myAvatarUrl = null;
   if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
     myUserId = String(tg.initDataUnsafe.user.id);
     myUsername = tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'Player';
+    // Telegram only exposes this for the CURRENT user, and only if they have
+    // a public-enough photo — that's why it has to be sent to the server on
+    // bet, rather than looked up for other players by their user_id.
+    myAvatarUrl = tg.initDataUnsafe.user.photo_url || null;
   } else {
     // Outside Telegram (e.g. testing in a normal browser) fall back to a
     // per-browser guest id so the game still works end to end.
@@ -42,7 +47,7 @@
      Config
      --------------------------------------------------------------------- */
   const CFG = {
-    SPIN_MS: 5000,           // must match SPIN_SECONDS on the server
+    SPIN_MS: 8000,           // must match SPIN_SECONDS on the server
     MIN_BET: 1,
     MAX_CARDS: 420,
     CYCLES: 7,
@@ -87,9 +92,6 @@
     historyEmpty: $('historyEmpty'),
     leadersList: $('leadersList'),
     leadersEmpty: $('leadersEmpty'),
-    soundToggle: $('soundToggle'),
-    soundIconOn: $('soundIconOn'),
-    soundIconOff: $('soundIconOff'),
     confettiCanvas: $('confetti-canvas'),
   };
 
@@ -102,8 +104,6 @@
       try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* ignore */ }
     },
   };
-  const KEYS = { sound: 'luckyspin_sound_v1' };
-  let soundOn = store.load(KEYS.sound, true);
 
   function fmt(n) { return '$' + Math.round(n).toLocaleString('ru-RU'); }
   function escapeHtml(s) {
@@ -111,7 +111,8 @@
   }
 
   /* ---------------------------------------------------------------------
-     Avatars — deterministic gradient + initials, no network dependency
+     Avatars — real Telegram photo when the server has one for this player,
+     otherwise a deterministic gradient + initials fallback.
      --------------------------------------------------------------------- */
   const avatarCache = new Map();
   function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
@@ -121,7 +122,7 @@
     const parts = clean.split(/\s+/);
     return parts.length === 1 ? clean.slice(0, 2).toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  function avatarUri(name) {
+  function fallbackAvatarUri(name) {
     if (avatarCache.has(name)) return avatarCache.get(name);
     const [c1, c2] = AVATAR_PALETTES[hashStr(name) % AVATAR_PALETTES.length];
     const initials = initialsOf(name);
@@ -137,48 +138,17 @@
     avatarCache.set(name, uri);
     return uri;
   }
-
-  /* ---------------------------------------------------------------------
-     Sound
-     --------------------------------------------------------------------- */
-  let actx = null;
-  function audioCtx() {
-    if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
-    return actx;
+  // Returns an <img> tag: real Telegram photo if we have one for this
+  // player, with onerror swapping to the initials fallback if the photo
+  // URL ever fails to load (expired, private, etc).
+  function avatarImgHtml(name, photoUrl, className) {
+    const cls = className || 'player-card__avatar';
+    const fallback = fallbackAvatarUri(name);
+    if (photoUrl) {
+      return `<img class="${cls}" src="${escapeHtml(photoUrl)}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${fallback}';">`;
+    }
+    return `<img class="${cls}" src="${fallback}" alt="">`;
   }
-  function beep(freq, dur, type, gain, delay) {
-    if (!soundOn) return;
-    const ctx = audioCtx();
-    if (!ctx) return;
-    const t0 = ctx.currentTime + (delay || 0);
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = type || 'sine';
-    osc.frequency.setValueAtTime(freq, t0);
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(gain || 0.08, t0 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(g).connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.02);
-  }
-  function sfxTick() { beep(880, 0.06, 'square', 0.04); }
-  function sfxBet() { beep(520, 0.09, 'triangle', 0.06); }
-  function sfxSpinStart() { beep(200, 0.4, 'sawtooth', 0.05); }
-  function sfxWin() { [523, 659, 784, 1046].forEach((f, i) => beep(f, 0.28, 'triangle', 0.09, i * 0.11)); }
-
-  function refreshSoundIcon() {
-    el.soundIconOn.style.display = soundOn ? '' : 'none';
-    el.soundIconOff.style.display = soundOn ? 'none' : '';
-    el.soundToggle.classList.toggle('is-muted', !soundOn);
-  }
-  refreshSoundIcon();
-  el.soundToggle.addEventListener('click', () => {
-    soundOn = !soundOn;
-    store.save(KEYS.sound, soundOn);
-    refreshSoundIcon();
-    if (soundOn) beep(700, 0.08, 'sine', 0.06);
-  });
 
   /* ---------------------------------------------------------------------
      Confetti
@@ -225,7 +195,7 @@
      --------------------------------------------------------------------- */
   function cardHtml(p) {
     return `<div class="player-card" data-name="${escapeHtml(p.name)}">
-      <img class="player-card__avatar" src="${avatarUri(p.name)}" alt="">
+      ${avatarImgHtml(p.name, p.avatar_url)}
       <span class="player-card__name">${escapeHtml(p.name)}</span>
       <span class="player-card__bet">${fmt(p.bet)}</span>
     </div>`;
@@ -258,7 +228,7 @@
       </div>`;
       return;
     }
-    const units = buildPreviewUnits(participants.map(p => ({ name: p.username, bet: p.bet })));
+    const units = buildPreviewUnits(participants.map(p => ({ name: p.username, bet: p.bet, avatar_url: p.avatar_url })));
     el.reelTrack.innerHTML = units.map(cardHtml).join('');
   }
 
@@ -282,7 +252,7 @@
     el.participantsList.innerHTML = participants.map(p => {
       const pct = p.bet / bank * 100;
       return `<div class="p-row">
-        <img class="p-row__avatar" src="${avatarUri(p.username)}" alt="">
+        ${avatarImgHtml(p.username, p.avatar_url, 'p-row__avatar')}
         <div class="p-row__body">
           <div class="p-row__top">
             <span class="p-row__name">${escapeHtml(p.username)}</span>
@@ -301,7 +271,7 @@
       const t = new Date(h.time);
       const time = t.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
       return `<div class="h-row">
-        <img class="h-row__avatar" src="${avatarUri(h.winner)}" alt="">
+        ${avatarImgHtml(h.winner, h.winner_avatar_url, 'h-row__avatar')}
         <div class="h-row__body">
           <div class="h-row__name">${escapeHtml(h.winner)}</div>
           <div class="h-row__meta">${time} · банк ${fmt(h.bank)} · шанс ${(h.chance * 100).toFixed(1)}% · комиссия ${Math.round(h.rate * 100)}%</div>
@@ -316,7 +286,7 @@
     el.leadersList.innerHTML = leaders.map((p, i) => `
       <div class="l-row">
         <div class="l-row__rank">${i + 1}</div>
-        <img class="l-row__avatar" src="${avatarUri(p.username)}" alt="">
+        ${avatarImgHtml(p.username, p.avatar_url, 'l-row__avatar')}
         <div class="l-row__body">
           <div class="l-row__name">${escapeHtml(p.username)}</div>
           <div class="l-row__meta">${p.wins} побед · ${p.rounds} раундов</div>
@@ -342,7 +312,7 @@
     const r = await fetch(`${SERVER_URL}/api/bet`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: myUserId, username, amount }),
+      body: JSON.stringify({ user_id: myUserId, username, amount, avatar_url: myAvatarUrl }),
     });
     return r.json();
   }
@@ -388,9 +358,8 @@
   function spinReelTo(participants, winnerUsername) {
     el.reelShell.classList.add('is-spinning');
     el.pointer.style.animationPlayState = 'running';
-    sfxSpinStart();
 
-    const baseUnits = buildPreviewUnits(participants.map(p => ({ name: p.username, bet: p.bet })));
+    const baseUnits = buildPreviewUnits(participants.map(p => ({ name: p.username, bet: p.bet, avatar_url: p.avatar_url })));
     let strip = [];
     for (let c = 0; c < CFG.CYCLES; c++) strip = strip.concat(shuffle(baseUnits.slice()));
     const landingCycle = shuffle(baseUnits.slice());
@@ -399,27 +368,30 @@
     strip = strip.concat(landingCycle);
     const targetIndex = strip.length - landingCycle.length + chosenLocal;
 
+    // Lay the strip out at rest (transform 0, no transition) and let the
+    // browser paint that frame BEFORE we measure anything or start the
+    // transition. Doing the measure + transition-start in the same frame
+    // as the innerHTML swap is what caused the little jump/stutter at the
+    // start of the spin.
+    el.reelTrack.style.willChange = 'transform';
+    el.reelTrack.style.transition = 'none';
+    el.reelTrack.style.transform = 'translateX(0px)';
     el.reelTrack.innerHTML = strip.map(cardHtml).join('');
 
     requestAnimationFrame(() => {
-      const { w, gap } = currentCardMetrics();
-      const step = w + gap;
-      const viewportW = el.reelTrack.parentElement.getBoundingClientRect().width;
-      const targetX = -(targetIndex * step + w / 2 - viewportW / 2);
+      requestAnimationFrame(() => {
+        const { w, gap } = currentCardMetrics();
+        const step = w + gap;
+        const viewportW = el.reelTrack.parentElement.getBoundingClientRect().width;
+        const targetX = -(targetIndex * step + w / 2 - viewportW / 2);
 
-      el.reelTrack.style.transition = 'none';
-      el.reelTrack.style.transform = 'translateX(0px)';
-      void el.reelTrack.offsetWidth;
-      el.reelTrack.style.transition = `transform ${CFG.SPIN_MS}ms cubic-bezier(.09,.82,.13,1)`;
-      el.reelTrack.style.transform = `translateX(${targetX}px)`;
-
-      let ticked = 0;
-      const tickTimer = setInterval(() => {
-        ticked += 1;
-        if (ticked < CFG.SPIN_MS / 220) sfxTick(); else clearInterval(tickTimer);
-      }, 220);
-      setTimeout(() => clearInterval(tickTimer), CFG.SPIN_MS + 100);
+        // Slow, smooth glide to a stop — no snap, no ticking.
+        el.reelTrack.style.transition = `transform ${CFG.SPIN_MS}ms cubic-bezier(0.19, 0.9, 0.16, 1)`;
+        el.reelTrack.style.transform = `translateX(${targetX}px)`;
+      });
     });
+
+    setTimeout(() => { el.reelTrack.style.willChange = 'auto'; }, CFG.SPIN_MS + 150);
   }
 
   function showWinnerBanner(winner) {
@@ -435,13 +407,12 @@
     });
     if (closest) closest.classList.add('is-winner');
 
-    el.winnerAvatar.innerHTML = `<img src="${avatarUri(winner.username)}" alt="">`;
+    el.winnerAvatar.innerHTML = avatarImgHtml(winner.username, winner.avatar_url);
     el.winnerName.textContent = winner.username;
     el.winnerPrize.textContent = `+${fmt(winner.prize)} USDT · комиссия ${Math.round(winner.rate * 100)}%`;
     el.winnerBanner.classList.add('is-visible');
 
     fireConfetti();
-    sfxWin();
     if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
 
     el.reelShell.classList.remove('is-spinning');
@@ -509,7 +480,6 @@
         flashInsufficient();
       } else {
         el.myBalance.textContent = fmt(result.balance);
-        sfxBet();
         pollRound(); // refresh immediately instead of waiting for the next tick
       }
     } finally {
