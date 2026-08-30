@@ -68,9 +68,9 @@ async function sendBet(amount) {
 
   const BOT_NAMES = [
     'NeonFox', 'StreamKitty', 'LuckyDan', 'PixelWolf', 'MissGold',
-    'ToxicRain', 'СашаКрут', 'ГрозаЧата', 'КотЛеонид', 'Zerkalo',
-    'НочнойДождь', 'VeraSpin', 'MaxWinner', 'ТихийШторм', 'RubyHeart',
-    'DimaLive', 'ЗвёздныйКит', 'NovaStrike', 'КириллPRO', 'GoldenEcho',
+    'ToxicRain', 'SashaCrew', 'StormChat', 'CatLeonid', 'Zerkalo',
+    'NightRain', 'VeraSpin', 'MaxWinner', 'QuietStorm', 'RubyHeart',
+    'DimaLive', 'StarWhale', 'NovaStrike', 'KirillPRO', 'GoldenEcho',
   ];
 
   const AVATAR_PALETTES = [
@@ -144,9 +144,9 @@ async function sendBet(amount) {
   function getMyName() {
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       const u = tg.initDataUnsafe.user;
-      return (u.username || u.first_name || 'Вы').slice(0, 16);
+      return (u.username || u.first_name || 'You').slice(0, 16);
     }
-    return 'Вы';
+    return 'You';
   }
   const MY_NAME = getMyName();
 
@@ -338,12 +338,12 @@ async function sendBet(amount) {
     el.bankValue.textContent = fmt(round.bank);
     bump(el.bankValue);
     el.myBalance.textContent = fmt(ensurePlayer(MY_NAME).balance);
-    el.participantsCount.textContent = `Участников: ${round.participants.length}`;
+    el.participantsCount.textContent = `Participants: ${round.participants.length}`;
   }
 
   function renderParticipants() {
     if (!round.participants.length) {
-      el.participantsList.innerHTML = '<div class="empty-hint">Пока никто не поставил</div>';
+      el.participantsList.innerHTML = '<div class="empty-hint">No one has bet yet</div>';
       return;
     }
     el.participantsList.innerHTML = round.participants.map(p => {
@@ -356,7 +356,7 @@ async function sendBet(amount) {
             <span class="p-row__bet">${fmt(p.bet)}</span>
           </div>
           <div class="p-row__bar"><div class="p-row__bar-fill" style="width:${pct}%"></div></div>
-          <div class="p-row__chance">Шанс на победу: ${pct.toFixed(1)}%</div>
+          <div class="p-row__chance">Win chance: ${pct.toFixed(1)}%</div>
         </div>
       </div>`;
     }).join('');
@@ -404,7 +404,7 @@ async function sendBet(amount) {
     if (!round.participants.length) {
       el.reelTrack.innerHTML = `<div class="reel-empty" id="reelEmpty">
         <span class="reel-empty__icon">🎴</span>
-        <span>Добавьте участников, чтобы начать спин</span>
+        <span>Add participants to start the spin</span>
       </div>`;
       return;
     }
@@ -427,7 +427,7 @@ async function sendBet(amount) {
     bet = Math.floor(Number(bet));
     if (!bet || bet < CFG.MIN_BET) { shake(el.betInput); return; }
     if (round.spinning) return;
-      // Отправляем ставку на сервер
+      // Send the bet to the server
 if (myUserId) {
     sendBet(bet).then(result => {
         if (result && !result.success) {
@@ -459,8 +459,8 @@ if (myUserId) {
   }
 
   function flashInsufficient() {
-    el.nickInput.placeholder = 'Недостаточно USDT!';
-    setTimeout(() => { el.nickInput.placeholder = 'Ник зрителя'; }, 1400);
+    el.nickInput.placeholder = 'Insufficient USDT!';
+    setTimeout(() => { el.nickInput.placeholder = 'Viewer nickname'; }, 1400);
   }
   function shake(elm) {
     elm.style.animation = 'none';
@@ -528,7 +528,7 @@ if (myUserId) {
         if (round.participants.length >= CFG.MIN_PARTICIPANTS) {
           spinReel();
         } else {
-          refundRound('Недостаточно участников — ставки возвращены');
+          refundRound('Not enough participants — bets refunded');
         }
       }
     }, 1000);
@@ -677,7 +677,7 @@ if (myUserId) {
     // UI
     el.winnerAvatar.innerHTML = `<img src="${avatarUri(winner.name)}" alt="">`;
     el.winnerName.textContent = winner.name;
-    el.winnerPrize.textContent = `+${fmt(prize)} USDT · комиссия ${Math.round(rate * 100)}%`;
+    el.winnerPrize.textContent = `+${fmt(prize)} USDT · commission ${Math.round(rate * 100)}%`;
     el.winnerBanner.classList.add('is-visible');
 
     fireConfetti();
@@ -729,7 +729,7 @@ if (myUserId) {
         <img class="h-row__avatar" src="${avatarUri(h.winner)}" alt="">
         <div class="h-row__body">
           <div class="h-row__name">${escapeHtml(h.winner)}</div>
-          <div class="h-row__meta">${time} · банк ${fmt(h.bank)} · шанс ${(h.chance * 100).toFixed(1)}% · комиссия ${Math.round(h.rate * 100)}%</div>
+          <div class="h-row__meta">${time} · bank ${fmt(h.bank)} · chance ${(h.chance * 100).toFixed(1)}% · commission ${Math.round(h.rate * 100)}%</div>
         </div>
         <div class="h-row__prize">+${fmt(h.prize)}</div>
       </div>`;
@@ -750,7 +750,7 @@ if (myUserId) {
         <img class="l-row__avatar" src="${avatarUri(p.name)}" alt="">
         <div class="l-row__body">
           <div class="l-row__name">${escapeHtml(p.name)}</div>
-          <div class="l-row__meta">${p.wins} побед · ${p.rounds} раундов</div>
+          <div class="l-row__meta">${p.wins} wins · ${p.rounds} rounds</div>
         </div>
         <div class="l-row__score">${fmt(p.totalWon)}</div>
       </div>`).join('');
