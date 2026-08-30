@@ -5,7 +5,7 @@
 
 const symbols = ["💎", "7️⃣", "🍒", "USDT", "🔔", "🍋", "$ "];
 
-let balance = 1000;
+let balance = 0;
 let bet = 10;
 let spinning = false;
 
@@ -42,7 +42,7 @@ function loadGame() {
     const savedBet = localStorage.getItem("gsk_casino_bet");
     if (savedBalance !== null) {
         balance = Number(savedBalance);
-        if (!Number.isFinite(balance) || balance < 0) balance = 1000;
+        if (!Number.isFinite(balance) || balance < 0) balance = 0;
     }
     if (savedBet !== null) {
         bet = Number(savedBet);
@@ -105,10 +105,12 @@ function animateReel(reel, duration) {
         box.classList.add("spinning");
         const interval = setInterval(() => {
             reel.textContent = randomSymbol();
-        }, 80);
+            reel.style.transform = `translateY(${(Math.random() - 0.5) * 12}px) rotateX(${Math.random() * 360}deg)`;
+        }, 55);
         setTimeout(() => {
             clearInterval(interval);
             box.classList.remove("spinning");
+            reel.style.transform = "translateY(0) rotateX(0deg)";
             resolve();
         }, duration);
     });

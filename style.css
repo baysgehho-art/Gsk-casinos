@@ -299,11 +299,13 @@ button {
     filter:
         drop-shadow(0 0 8px rgba(255,255,255,.25));
 
-    transition: transform .1s;
+    transition: transform .08s ease-out;
+    will-change: transform, filter, opacity;
 }
 
 .reel.spinning .reel-inner {
-    animation: reelSpin .12s linear infinite;
+    animation: reelSpin .08s linear infinite;
+    will-change: transform, opacity;
 }
 
 @keyframes reelSpin {
