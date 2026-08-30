@@ -771,10 +771,18 @@ if (myUserId) {
   /* ---------------------------------------------------------------------
      Init
      --------------------------------------------------------------------- */
-  function init() {
+  async function init() {
     el.timerLabel.textContent = CFG.ROUND_SECONDS;
     el.timerRing.style.strokeDasharray = String(RING_C);
     el.timerRing.style.strokeDashoffset = '0';
+    
+    // Загружаем баланс с сервера
+    if (myUserId) {
+        const serverBalance = await getBalance();
+        ensurePlayer(MY_NAME).balance = serverBalance;
+        store.save(KEYS.players, players);
+    }
+    
     renderBank();
     renderParticipants();
     renderReelPreview();
