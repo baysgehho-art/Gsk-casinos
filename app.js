@@ -1,3 +1,30 @@
+const SERVER_URL = "https://lagger.pythonanywhere.com";
+let myUserId = null;
+let myUsername = "Player";
+
+const tg = window.Telegram?.WebApp;
+if (tg && tg.initDataUnsafe?.user) {
+    myUserId = tg.initDataUnsafe.user.id;
+    myUsername = tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || "Player";
+}
+
+async function getBalance() {
+    if (!myUserId) return 100;
+    const response = await fetch(`${SERVER_URL}/api/balance?user_id=${myUserId}`);
+    const data = await response.json();
+    return data.balance;
+}
+
+async function sendBet(amount) {
+    if (!myUserId) return false;
+    const response = await fetch(`${SERVER_URL}/api/bet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: myUserId, username: myUsername, amount: amount })
+    });
+    const data = await response.json();
+    return data;
+}
 /* ==========================================================================
    LUCKY SPIN — app.js
    ========================================================================== */
