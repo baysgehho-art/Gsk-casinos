@@ -938,7 +938,7 @@ function wireEvents() {
   document.getElementById("miniFree").addEventListener("click", () => showScreen("crash"));
 
   document.getElementById("btnTopup").addEventListener("click", () => topupCrypto());
-  document.getElementById("btnAddFunds").addEventListener("click", () => BetSheet.open());
+document.getElementById("btnAddFunds").addEventListener("click", () => topupCrypto());
 
   document.getElementById("btnMenu").addEventListener("click", () => showScreen("history"));
 
