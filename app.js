@@ -92,13 +92,9 @@ const State = {
   currentScreen: "home",
   history: ["home"],
   pvp: { players: [], status: "waiting", bank: 0, roundId: null },
-  crash: { status: "waiting", multiplier: 1, history: [], bets: [] },
   inventory: [],
   invFilter: "all",
   ratingOffset: 0,
-  crashRoundLocal: null,
-  crashHasBet: false,
-  crashChartPoints: [],
   offline: false,
 };
 
@@ -188,7 +184,7 @@ function showScreen(name, opts = {}) {
   Tg.haptic("selection");
 
   if (name === "pvp") { Pvp.refresh(); Pvp.startPolling(); } else { Pvp.stopPolling(); }
-  if (name === "crash") { Crash.refresh(); Crash.startPolling(); } else { Crash.stopPolling(); }
+  if (name === "crash") { Crash.startPolling(); } else { Crash.stopPolling(); }
   if (name === "inventory") Inventory.load();
   if (name === "rating") Rating.load(true);
   if (name === "rewards") Rewards.load();
@@ -506,74 +502,153 @@ function showWinModal(title, amountText) {
 
 const Crash = {
   pollTimer: null,
+  rafId: null,
   canvas: null,
   ctx: null,
+  rocketEl: null,
+  cssW: 0,
+  cssH: 0,
+
+  // synced-from-server state
+  status: "waiting",
+  roundId: null,
+  serverOffset: 0,
+  startedAt: null,
+  runAt: null,
+  waitSeconds: 8,
+  growthRate: 0.17,
+  maxMultiplier: 120,
+  serverMultiplier: 1,
+  bets: [],
+  points: [],
+  _rocketState: null,
+  _explodedRoundId: null,
 
   startPolling() {
     this.stopPolling();
-    this.pollTimer = setInterval(() => this.refresh(), 400);
+    this.refresh();
+    this.pollTimer = setInterval(() => this.refresh(), 1000);
+    this.loop();
   },
   stopPolling() {
     if (this.pollTimer) clearInterval(this.pollTimer);
     this.pollTimer = null;
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
   },
 
   initCanvas() {
     if (this.canvas) return;
     this.canvas = document.getElementById("crashCanvas");
     this.ctx = this.canvas.getContext("2d");
+    this.rocketEl = document.getElementById("crashRocket");
     const resize = () => {
       const rect = this.canvas.parentElement.getBoundingClientRect();
-      this.canvas.width = rect.width * devicePixelRatio;
-      this.canvas.height = rect.height * devicePixelRatio;
+      const dpr = window.devicePixelRatio || 1;
+      this.cssW = rect.width;
+      this.cssH = rect.height;
+      this.canvas.width = Math.round(rect.width * dpr);
+      this.canvas.height = Math.round(rect.height * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
   },
 
+  nowServer() {
+    return Date.now() / 1000 + this.serverOffset;
+  },
+
   async refresh() {
     const res = await Api.get("/api/crash/current");
     if (!res.ok) return;
-    this.render(res.crash);
+    this.applyServerState(res.crash);
   },
 
-  lastStatus: null,
-  lastRoundId: null,
-  render(crash) {
+  applyServerState(crash) {
     this.initCanvas();
+    this.serverOffset = crash.server_time - Date.now() / 1000;
 
-    if (crash.round_id !== this.lastRoundId) {
-      State.crashChartPoints = [];
-      State.crashHasBet = false;
-      this.lastRoundId = crash.round_id;
+    if (crash.round_id !== this.roundId) {
+      this.roundId = crash.round_id;
+      this.points = [];
       document.getElementById("crashPlayers").innerHTML = "";
+      this.hideExplosion();
     }
 
+    this.status = crash.status;
+    this.startedAt = crash.started_at;
+    this.runAt = crash.run_at;
+    this.waitSeconds = crash.wait_seconds;
+    this.growthRate = crash.growth_rate || 0.17;
+    this.maxMultiplier = crash.max_multiplier || 120;
+    this.serverMultiplier = crash.multiplier;
+    this.bets = crash.bets;
+
+    this.renderHistory(crash.history);
+    this.renderPlayers(crash.bets);
+    this.updateStatusChrome();
+  },
+
+  updateStatusChrome() {
     const statusText = document.getElementById("crashStatusText");
+    const actionBtn = document.getElementById("btnCrashAction");
+
+    if (this.status === "waiting") {
+      statusText.textContent = "Ожидание ставок";
+      statusText.className = "";
+      actionBtn.textContent = "Сделать ставку";
+      actionBtn.classList.remove("cashout", "disabled");
+    } else if (this.status === "running") {
+      statusText.textContent = "LIVE";
+      statusText.className = "live";
+    } else if (this.status === "crashed") {
+      statusText.textContent = "Раунд завершён";
+      statusText.className = "crashed";
+      actionBtn.textContent = "Раунд завершён";
+      actionBtn.classList.add("disabled");
+      actionBtn.classList.remove("cashout");
+      this.triggerExplosion();
+    }
+  },
+
+  loop() {
+    this.tick();
+    this.rafId = requestAnimationFrame(() => this.loop());
+  },
+
+  tick() {
+    if (!this.canvas) return;
     const timerText = document.getElementById("crashTimerText");
     const multEl = document.getElementById("crashMultiplier");
     const actionBtn = document.getElementById("btnCrashAction");
 
-    if (crash.status === "waiting") {
-      statusText.textContent = "Ожидание ставок";
-      statusText.className = "";
-      timerText.textContent = formatCountdown(crash.wait_seconds - (crash.server_time - (crash.server_time)));
+    if (this.status === "waiting") {
+      const left = this.waitSeconds - (this.nowServer() - (this.startedAt || this.nowServer()));
+      timerText.textContent = formatCountdown(left);
       multEl.textContent = "1.00x";
       multEl.classList.remove("crashed");
-      actionBtn.textContent = "Сделать ставку";
-      actionBtn.classList.remove("cashout", "disabled");
-    } else if (crash.status === "running") {
-      statusText.textContent = "LIVE";
-      statusText.className = "live";
+      this.points = [];
+      this.setRocketPosition(26, this.cssH - 22, 0);
+      this.setRocketState("idle");
+      this.drawGraph();
+      this.setHomeMult(1);
+    } else if (this.status === "running") {
       timerText.textContent = "";
-      multEl.textContent = fmt(crash.multiplier) + "x";
+      const elapsed = Math.max(0, this.nowServer() - this.runAt);
+      const mult = Math.min(Math.exp(this.growthRate * elapsed), this.maxMultiplier);
+      multEl.textContent = fmt(mult) + "x";
       multEl.classList.remove("crashed");
-      State.crashChartPoints.push(crash.multiplier);
-      this.drawGraph(crash.multiplier, false);
 
-      const myBet = crash.bets.find((b) => State.user && b.user_id === State.user.id);
+      this.points.push({ t: elapsed, m: mult });
+      if (this.points.length > 3000) this.points.shift();
+      this.drawGraph();
+      this.setRocketState("flying");
+      this.setHomeMult(mult);
+
+      const myBet = this.bets.find((b) => State.user && b.user_id === State.user.id);
       if (myBet && !myBet.cashed_out) {
-        actionBtn.textContent = `Забрать ${fmt(myBet.current_win)} ◆`;
+        actionBtn.textContent = `Забрать ${fmt(myBet.amount * mult)} ◆`;
         actionBtn.classList.add("cashout");
         actionBtn.classList.remove("disabled");
       } else {
@@ -581,61 +656,116 @@ const Crash = {
         actionBtn.classList.add("disabled");
         actionBtn.classList.remove("cashout");
       }
-    } else if (crash.status === "crashed") {
-      statusText.textContent = "Раунд завершён";
-      statusText.className = "crashed";
+    } else if (this.status === "crashed") {
       timerText.textContent = "";
-      multEl.textContent = fmt(crash.multiplier) + "x";
+      multEl.textContent = fmt(this.serverMultiplier) + "x";
       multEl.classList.add("crashed");
-      this.drawGraph(crash.multiplier, true);
-      actionBtn.textContent = "Раунд завершён";
-      actionBtn.classList.add("disabled");
-      actionBtn.classList.remove("cashout");
+      this.drawGraph();
+      this.setRocketState("exploded");
+      this.setHomeMult(this.serverMultiplier);
     }
-
-    this.renderHistory(crash.history);
-    this.renderPlayers(crash.bets);
-    this.renderHomeMult(crash);
   },
 
-  renderHomeMult(crash) {
+  setHomeMult(mult) {
     const el = document.getElementById("homeCrashMult");
-    if (el) el.textContent = fmt(crash.multiplier) + "x";
+    if (el) el.textContent = fmt(mult) + "x";
   },
 
-  drawGraph(multiplier, crashed) {
+  computeCurve() {
+    const pts = this.points;
+    if (pts.length < 2) return null;
+    const w = this.cssW, h = this.cssH;
+    const domainT = Math.max(pts[pts.length - 1].t, 0.001);
+    let maxMult = 2;
+    for (const p of pts) if (p.m > maxMult) maxMult = p.m;
+    const padLeft = 10, padRight = 22, padTop = 34, padBottom = 14;
+    const mapX = (t) => padLeft + (t / domainT) * (w - padLeft - padRight);
+    const mapY = (m) => (h - padBottom) - (m / maxMult) * (h - padTop - padBottom);
+    return { pts, mapX, mapY };
+  },
+
+  drawGraph() {
     const ctx = this.ctx;
-    const w = this.canvas.width, h = this.canvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    const pts = State.crashChartPoints;
-    if (pts.length < 2) return;
-
-    const maxMult = Math.max(...pts, 2);
-    const stepX = w / Math.max(pts.length - 1, 1);
+    if (!ctx) return;
+    ctx.clearRect(0, 0, this.cssW, this.cssH);
+    const crashedNow = this.status === "crashed";
+    const curve = this.computeCurve();
+    if (!curve) return;
+    const { pts, mapX, mapY } = curve;
 
     ctx.beginPath();
-    pts.forEach((m, i) => {
-      const x = i * stepX;
-      const y = h - (Math.min(m, maxMult) / maxMult) * (h * 0.85) - h * 0.05;
+    pts.forEach((p, i) => {
+      const x = mapX(p.t), y = mapY(p.m);
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
-    ctx.strokeStyle = crashed ? "#ff5c5c" : "#20d6d0";
-    ctx.lineWidth = 3 * devicePixelRatio;
+    ctx.strokeStyle = crashedNow ? "#ff5c5c" : "#20d6d0";
+    ctx.lineWidth = 3;
     ctx.lineJoin = "round";
-    ctx.shadowColor = crashed ? "rgba(255,92,92,0.5)" : "rgba(32,214,208,0.5)";
-    ctx.shadowBlur = 12;
+    ctx.lineCap = "round";
+    ctx.shadowColor = crashedNow ? "rgba(255,92,92,0.55)" : "rgba(32,214,208,0.55)";
+    ctx.shadowBlur = 10;
     ctx.stroke();
 
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
+    const lastX = mapX(pts[pts.length - 1].t);
+    const lastY = mapY(pts[pts.length - 1].m);
+    ctx.lineTo(lastX, this.cssH);
+    ctx.lineTo(mapX(pts[0].t), this.cssH);
     ctx.closePath();
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, crashed ? "rgba(255,92,92,0.25)" : "rgba(32,214,208,0.22)");
+    const grad = ctx.createLinearGradient(0, 0, 0, this.cssH);
+    grad.addColorStop(0, crashedNow ? "rgba(255,92,92,0.22)" : "rgba(32,214,208,0.2)");
     grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = grad;
     ctx.shadowBlur = 0;
+    ctx.fillStyle = grad;
     ctx.fill();
+
+    // rocket heading, sampled a bit behind the tip so the tilt looks stable, not jittery
+    let angle = 0;
+    if (pts.length > 2) {
+      const lastT = pts[pts.length - 1].t;
+      let refIdx = 0;
+      for (let i = pts.length - 2; i >= 0; i--) {
+        refIdx = i;
+        if (lastT - pts[i].t >= 0.15) break;
+      }
+      const p0 = pts[refIdx], p1 = pts[pts.length - 1];
+      const dx = mapX(p1.t) - mapX(p0.t);
+      const dy = mapY(p1.m) - mapY(p0.m);
+      if (dx || dy) {
+        angle = Math.atan2(dx, -dy) * 180 / Math.PI;
+        angle = Math.max(-55, Math.min(70, angle));
+      }
+    }
+    this.setRocketPosition(lastX, lastY, angle);
+  },
+
+  setRocketState(state) {
+    const el = this.rocketEl;
+    if (!el || state === this._rocketState) return;
+    this._rocketState = state;
+    el.classList.remove("idle", "flying", "crashed");
+    if (state === "idle") el.classList.remove("visible");
+    else el.classList.add("visible");
+    el.classList.add(state === "exploded" ? "crashed" : state);
+  },
+
+  setRocketPosition(x, y, angleDeg) {
+    const el = this.rocketEl;
+    if (!el) return;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
+  },
+
+  triggerExplosion() {
+    if (this._explodedRoundId === this.roundId) return;
+    this._explodedRoundId = this.roundId;
+    Tg.haptic("notification", "error");
+  },
+
+  hideExplosion() {
+    this._explodedRoundId = null;
+    this._rocketState = null;
+    if (this.rocketEl) this.rocketEl.classList.remove("idle", "flying", "crashed", "visible");
   },
 
   renderHistory(history) {
@@ -679,7 +809,7 @@ const Crash = {
     renderUserUI(true);
     toast("Ставка принята", "success");
     Tg.haptic("impact", "light");
-    this.render(res.crash);
+    this.applyServerState(res.crash);
   },
 
   async cashout() {
@@ -691,6 +821,12 @@ const Crash = {
     State.user.balance = res.balance;
     renderUserUI(true);
     Tg.haptic("notification", "success");
+    const myBet = this.bets.find((b) => State.user && b.user_id === State.user.id);
+    if (myBet) {
+      myBet.cashed_out = true;
+      myBet.cashout_multiplier = res.result.multiplier;
+      myBet.current_win = res.result.win_amount;
+    }
     showWinModal("Вы забрали выигрыш!", `+${fmt(res.result.win_amount)} ◆ (${fmt(res.result.multiplier)}x)`);
   },
 };
@@ -937,8 +1073,23 @@ function wireEvents() {
   document.getElementById("miniFree24").addEventListener("click", () => showScreen("rewards"));
   document.getElementById("miniFree").addEventListener("click", () => showScreen("crash"));
 
-  document.getElementById("btnTopup").addEventListener("click", () => topupCrypto());
-document.getElementById("btnAddFunds").addEventListener("click", () => topupCrypto());
+  document.getElementById("btnTopup").addEventListener("click", () => TopupSheet.open());
+  document.getElementById("btnAddFunds").addEventListener("click", () => TopupSheet.open());
+
+  document.getElementById("btnConfirmTopup").addEventListener("click", () => {
+    const val = parseFloat(String(document.getElementById("topupAmountInput").value).replace(",", "."));
+    topupCrypto(val);
+  });
+
+  document.querySelectorAll("#topupSheet .bet-quick-row button").forEach((b) => {
+    b.addEventListener("click", () => {
+      document.getElementById("topupAmountInput").value = b.dataset.amt;
+    });
+  });
+
+  document.getElementById("topupSheetOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "topupSheetOverlay") TopupSheet.close();
+  });
 
   document.getElementById("btnMenu").addEventListener("click", () => showScreen("history"));
 
@@ -1016,21 +1167,25 @@ async function bootstrap() {
   await User.authenticate();
   Pvp.refresh();
   History.load();
-  setInterval(() => Pvp.refresh(), State.currentScreen === "home" ? 4000 : 999999);
   setInterval(() => { if (State.currentScreen === "home") Pvp.refresh(); }, 4000);
   setInterval(() => { if (State.user) User.refreshBalance(); }, 6000);
 }
 
 document.addEventListener("DOMContentLoaded", bootstrap);
+const TopupSheet = {
+  open() {
+    document.getElementById("topupSheetOverlay").classList.remove("hidden");
+    document.getElementById("topupAmountInput").value = "";
+  },
+  close() {
+    document.getElementById("topupSheetOverlay").classList.add("hidden");
+  },
+};
+
 let topupInProgress = false;
 
-async function topupCrypto() {
+async function topupCrypto(amount) {
   if (topupInProgress) return;
-
-  const amountRaw = prompt("Введите сумму в TON:");
-  if (amountRaw === null) return;
-
-  const amount = parseFloat(String(amountRaw).replace(",", "."));
 
   if (!Number.isFinite(amount) || amount <= 0) {
     toast("Введите корректную сумму", "error");
@@ -1038,6 +1193,8 @@ async function topupCrypto() {
   }
 
   topupInProgress = true;
+  const btn = document.getElementById("btnConfirmTopup");
+  if (btn) { btn.disabled = true; btn.textContent = "Создаём счёт..."; }
 
   try {
     const res = await Api.post("/api/crypto/create-invoice", {
@@ -1045,17 +1202,17 @@ async function topupCrypto() {
       asset: "TON"
     });
 
-    console.log("Ответ создания счёта:", res);
-
     if (!res || !res.ok || !res.invoice_url) {
       toast(
-  typeof res?.error === "object"
-    ? (res.error?.message || JSON.stringify(res.error))
-    : (res?.error || "Ошибка создания счёта"),
-  "error"
-);
+        typeof res?.error === "object"
+          ? (res.error?.message || JSON.stringify(res.error))
+          : (res?.error || "Ошибка создания счёта"),
+        "error"
+      );
       return;
     }
+
+    TopupSheet.close();
 
     if (Tg.tg && typeof Tg.tg.openTelegramLink === "function") {
       Tg.tg.openTelegramLink(res.invoice_url);
@@ -1068,5 +1225,6 @@ async function topupCrypto() {
     toast("Не удалось создать счёт", "error");
   } finally {
     topupInProgress = false;
+    if (btn) { btn.disabled = false; btn.textContent = "Создать счёт"; }
   }
 }

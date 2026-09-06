@@ -435,6 +435,68 @@ button, input {
   overflow: hidden;
 }
 #crashCanvas { width: 100%; height: 100%; display: block; }
+
+.crash-rocket {
+  position: absolute;
+  top: 0; left: 0;
+  width: 22px; height: 36px;
+  transform: translate(-50%, -50%) rotate(0deg);
+  will-change: transform, left, top;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+}
+.crash-rocket.visible { opacity: 1; }
+.crash-rocket .rocket-body {
+  width: 100%; height: 100%; display: block;
+  filter: drop-shadow(0 0 6px rgba(32,214,208,0.65));
+  transition: filter .2s;
+}
+.crash-rocket.idle .rocket-body { animation: rocketBob 1.6s ease-in-out infinite; }
+.crash-rocket.crashed .rocket-body { opacity: 0; transition: opacity .1s; }
+.crash-rocket.crashed { filter: drop-shadow(0 0 10px rgba(255,92,92,0.6)); }
+
+.crash-rocket .rocket-flame {
+  position: absolute;
+  left: 50%; top: 100%;
+  width: 9px; height: 16px;
+  margin-left: -4.5px;
+  border-radius: 50% 50% 60% 60%;
+  background: radial-gradient(circle at 50% 0%, #fff5cf 0%, #ffb23e 45%, rgba(255,92,62,0) 75%);
+  transform-origin: 50% 0%;
+  animation: flameFlicker 0.12s infinite alternate ease-in-out;
+}
+.crash-rocket.idle .rocket-flame,
+.crash-rocket.crashed .rocket-flame { display: none; }
+
+.crash-rocket .rocket-explosion {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 8px; height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffb23e 35%, #ff5c5c 65%, rgba(255,92,92,0) 75%);
+  opacity: 0;
+  transform: scale(0.2);
+}
+.crash-rocket.crashed .rocket-explosion {
+  animation: rocketBoom 0.55s ease-out forwards;
+}
+
+@keyframes flameFlicker {
+  0% { transform: scaleY(1) scaleX(1); opacity: 0.9; }
+  100% { transform: scaleY(1.35) scaleX(0.8); opacity: 1; }
+}
+@keyframes rocketBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes rocketBoom {
+  0% { opacity: 1; transform: scale(0.2); }
+  60% { opacity: 1; transform: scale(2.8); }
+  100% { opacity: 0; transform: scale(3.6); }
+}
+
 .crash-multiplier {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);

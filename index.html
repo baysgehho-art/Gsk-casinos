@@ -148,6 +148,22 @@
 
       <div class="crash-graph-wrap">
         <canvas id="crashCanvas"></canvas>
+        <div class="crash-rocket" id="crashRocket">
+          <div class="rocket-flame"></div>
+          <svg viewBox="0 0 24 40" class="rocket-body" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="rocketGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#eaf6ff"/>
+                <stop offset="1" stop-color="#20d6d0"/>
+              </linearGradient>
+            </defs>
+            <path d="M12 0 C18 8 20 20 16 32 L8 32 C4 20 6 8 12 0 Z" fill="url(#rocketGrad)"/>
+            <circle cx="12" cy="14" r="3.4" fill="#0a0b0f" opacity="0.55"/>
+            <path d="M8 26 L2 34 L8 32 Z" fill="#20d6d0"/>
+            <path d="M16 26 L22 34 L16 32 Z" fill="#20d6d0"/>
+          </svg>
+          <div class="rocket-explosion"></div>
+        </div>
         <div class="crash-multiplier" id="crashMultiplier">1.00x</div>
       </div>
 
@@ -279,6 +295,24 @@
       <button data-amt="max" id="btnBetMax">MAX</button>
     </div>
     <button class="btn-confirm-bet" id="btnConfirmBet">Сделать ставку</button>
+  </div>
+</div>
+
+<!-- ===================== TOPUP MODAL (bottom sheet) ===================== -->
+<div class="sheet-overlay hidden" id="topupSheetOverlay">
+  <div class="sheet" id="topupSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Пополнение баланса</div>
+    <div class="sheet-balance">Способ: <span>TON (Crypto Bot)</span></div>
+    <input type="number" id="topupAmountInput" class="bet-input" placeholder="Сумма в TON" min="0" step="0.1">
+    <div class="bet-quick-row">
+      <button data-amt="0.5">0.5</button>
+      <button data-amt="1">1</button>
+      <button data-amt="5">5</button>
+      <button data-amt="10">10</button>
+      <button data-amt="25">25</button>
+    </div>
+    <button class="btn-confirm-bet" id="btnConfirmTopup">Создать счёт</button>
   </div>
 </div>
 
