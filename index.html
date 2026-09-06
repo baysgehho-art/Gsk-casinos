@@ -1,135 +1,295 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Lucky Spin</title>
-<meta name="theme-color" content="#0a0612" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>Epic Battle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0f">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="bg-glow bg-glow--a"></div>
-<div class="bg-glow bg-glow--b"></div>
-<div class="bg-noise"></div>
+<div id="toast-root" class="toast-root"></div>
 
-<canvas id="confetti-canvas"></canvas>
+<div id="app" class="app">
 
-<div id="app">
+  <!-- ===================== TOP BAR ===================== -->
+  <header class="topbar" id="topbar">
+    <button class="topbar-back" id="btnBack" aria-label="Назад">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Назад</span>
+    </button>
 
-  <!-- ===== HEADER ===== -->
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand__icon">🎰</span>
-      <span class="brand__name">LUCKY<span class="brand__accent">SPIN</span></span>
+    <div class="topbar-title" id="topbarTitle">
+      <span class="topbar-gift">🎁</span>
+      <span id="topbarTitleText">Epic Battle</span>
     </div>
 
-    <div class="topbar__right">
-      <div class="round-timer" id="roundTimerWrap" title="Таймер раунда">
-        <svg viewBox="0 0 40 40" class="round-timer__ring">
-          <circle cx="20" cy="20" r="17" class="round-timer__track"></circle>
-          <circle cx="20" cy="20" r="17" class="round-timer__prog" id="timerRing"></circle>
-        </svg>
-        <span id="timerLabel" class="round-timer__label">30</span>
+    <div class="topbar-right">
+      <div class="balance-pill" id="balancePill">
+        <span class="ton-icon">◆</span>
+        <span id="balanceValue">0.00</span>
       </div>
+      <button class="btn-plus" id="btnAddFunds" aria-label="Пополнить">+</button>
+      <button class="topbar-menu" id="btnMenu" aria-label="Меню">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg>
+      </button>
     </div>
   </header>
 
-  <!-- ===== BANK ===== -->
-  <section class="bank-card glass">
-    <div class="bank-card__row">
-      <div class="bank-card__item">
-        <span class="bank-card__label">Банк раунда</span>
-        <span class="bank-card__value" id="bankValue">$0</span>
-      </div>
-      <div class="bank-card__divider"></div>
-      <div class="bank-card__item">
-        <span class="bank-card__label">Ваш баланс</span>
-        <span class="bank-card__value bank-card__value--gold" id="myBalance">$1000</span>
-      </div>
-    </div>
-    <div class="bank-card__meta" id="participantsCount">Участников: 0</div>
-  </section>
+  <!-- ===================== SCREENS ===================== -->
+  <main class="screens" id="screens">
 
-  <!-- ===== REEL ===== -->
-  <section class="reel-shell glass">
-    <div class="reel-shell__blur" id="reelBlur"></div>
-    <div class="pointer" id="pointer">
-      <div class="pointer__glow"></div>
-      <div class="pointer__tri"></div>
-      <div class="pointer__line"></div>
-    </div>
-    <div class="reel-viewport">
-      <div class="reel-track" id="reelTrack">
-        <div class="reel-empty" id="reelEmpty">
-          <span class="reel-empty__icon">🎴</span>
-          <span>Добавьте участников, чтобы начать спин</span>
+    <!-- ---------- HOME ---------- -->
+    <section class="screen" id="screen-home" data-screen="home">
+      <div class="home-header">
+        <div class="user-card">
+          <img id="userAvatar" class="user-avatar" src="" alt="">
+          <div class="user-meta">
+            <div class="user-name" id="userName">Гость</div>
+            <div class="user-sub" id="userSub">demo режим</div>
+          </div>
+          <button class="topup-btn" id="btnTopup">Пополнить</button>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-chip">
+            <div class="stat-label">Баланс</div>
+            <div class="stat-value" id="statBalance">0.00 <span class="ton-icon">◆</span></div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-label">Игр сыграно</div>
+            <div class="stat-value" id="statGames">0</div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-label">Топ дня</div>
+            <div class="stat-value" id="statTop">#—</div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="reel-shell__fade reel-shell__fade--l"></div>
-    <div class="reel-shell__fade reel-shell__fade--r"></div>
-  </section>
 
-  <!-- ===== WINNER BANNER ===== -->
-  <section class="winner-banner" id="winnerBanner">
-    <div class="winner-banner__avatar" id="winnerAvatar"></div>
-    <div class="winner-banner__text">
-      <span class="winner-banner__label">Победитель</span>
-      <span class="winner-banner__name" id="winnerName">—</span>
-      <span class="winner-banner__prize" id="winnerPrize">+$0 USDT</span>
-    </div>
-  </section>
+      <div class="promo-banner" id="promoBanner">
+        <div class="promo-text">
+          <div class="promo-title">РАКЕТКА</div>
+          <div class="promo-sub">Удвой TON за секунды</div>
+        </div>
+        <div class="promo-emoji">🚀</div>
+      </div>
 
-  <!-- ===== BET FORM ===== -->
-  <section class="bet-panel glass">
-    <h2 class="section-title">Сделать ставку</h2>
-    <div class="bet-panel__form">
-      <input type="text" id="nickInput" class="bet-input" placeholder="Ник зрителя" maxlength="16" autocomplete="off" />
-      <input type="number" id="betInput" class="bet-input bet-input--num" placeholder="Ставка" min="1" value="10" />
-    </div>
-    <div class="bet-panel__quick" id="quickBets">
-      <button class="chip-btn" data-amt="10">+10</button>
-      <button class="chip-btn" data-amt="25">+25</button>
-      <button class="chip-btn" data-amt="50">+50</button>
-      <button class="chip-btn" data-amt="100">+100</button>
-    </div>
-    <button id="addBetBtn" class="btn btn--primary">
-      <span>Поставить</span>
+      <button class="mode-card mode-pvp" id="cardPVP">
+        <div class="mode-card-head">
+          <span class="mode-icon">⚔</span>
+          <span class="mode-title">PVP БИТВА</span>
+        </div>
+        <div class="mode-players" id="homePvpPlayers"></div>
+        <div class="mode-foot">
+          <span id="homePvpBank">Банк: 0.00 ◆</span>
+          <span class="mode-cta">Играть →</span>
+        </div>
+      </button>
+
+      <button class="mode-card mode-hub" id="cardCrash">
+        <div class="mode-card-head">
+          <span class="mode-icon">📈</span>
+          <span class="mode-title">CRASH HUB</span>
+        </div>
+        <div class="mode-foot">
+          <span id="homeCrashMult">1.00x</span>
+          <span class="mode-cta">Играть →</span>
+        </div>
+      </button>
+
+      <div class="mini-grid">
+        <div class="mini-card" id="miniFree24">
+          <div class="mini-badge">24ч</div>
+          <div class="mini-name">FREE24</div>
+          <div class="mini-sub">Бесплатный бонус</div>
+        </div>
+        <div class="mini-card" id="miniFree">
+          <div class="mini-badge free">FREE</div>
+          <div class="mini-name">Мини-игра</div>
+          <div class="mini-sub">Испытай удачу</div>
+        </div>
+      </div>
+
+      <div class="section-title">Последние игры</div>
+      <div class="recent-list" id="recentList"></div>
+    </section>
+
+    <!-- ---------- PVP ---------- -->
+    <section class="screen" id="screen-pvp" data-screen="pvp">
+      <div class="pvp-topinfo">
+        <div class="pvp-bank-box">
+          <div class="pvp-bank-label">ОБЩИЙ БАНК</div>
+          <div class="pvp-bank-value" id="pvpBankValue">0.00 <span class="ton-icon">◆</span></div>
+        </div>
+      </div>
+
+      <div class="wheel-wrap">
+        <svg class="wheel-svg" id="wheelSvg" viewBox="0 0 320 320"></svg>
+        <div class="wheel-center" id="wheelCenter">
+          <div class="wheel-status" id="wheelStatus">WAITING</div>
+          <div class="wheel-timer" id="wheelTimer"></div>
+        </div>
+      </div>
+
+      <div class="players-row" id="playersRow"></div>
+
+      <button class="btn-join" id="btnJoinBattle">Присоединиться к битве</button>
+    </section>
+
+    <!-- ---------- CRASH ---------- -->
+    <section class="screen" id="screen-crash" data-screen="crash">
+      <div class="crash-status-bar">
+        <span id="crashStatusText">Ожидание ставок</span>
+        <span id="crashTimerText"></span>
+      </div>
+
+      <div class="crash-graph-wrap">
+        <canvas id="crashCanvas"></canvas>
+        <div class="crash-multiplier" id="crashMultiplier">1.00x</div>
+      </div>
+
+      <div class="crash-history" id="crashHistory"></div>
+
+      <div class="crash-actions">
+        <div class="bet-quick-row" id="crashQuickRow">
+          <button data-amt="0.5">0.5</button>
+          <button data-amt="1">1</button>
+          <button data-amt="5">5</button>
+          <button data-amt="10">10</button>
+        </div>
+        <input type="number" id="crashBetInput" class="bet-input" placeholder="Сумма ставки" min="0" step="0.1">
+        <button class="btn-crash-action" id="btnCrashAction">Сделать ставку</button>
+      </div>
+
+      <div class="section-title">Игроки раунда</div>
+      <div class="crash-players" id="crashPlayers"></div>
+    </section>
+
+    <!-- ---------- HISTORY ---------- -->
+    <section class="screen" id="screen-history" data-screen="history">
+      <div class="section-title">История игр</div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+
+    <!-- ---------- INVENTORY ---------- -->
+    <section class="screen" id="screen-inventory" data-screen="inventory">
+      <div class="filter-row" id="invFilters">
+        <button class="filter-chip active" data-filter="all">Все</button>
+        <button class="filter-chip" data-filter="Common">Common</button>
+        <button class="filter-chip" data-filter="Rare">Rare</button>
+        <button class="filter-chip" data-filter="Epic">Epic</button>
+        <button class="filter-chip" data-filter="Legendary">Legendary</button>
+      </div>
+      <div class="inventory-grid" id="inventoryGrid"></div>
+    </section>
+
+    <!-- ---------- RATING ---------- -->
+    <section class="screen" id="screen-rating" data-screen="rating">
+      <div class="rating-header">
+        <div class="rating-header-label">Ваш баланс</div>
+        <div class="rating-header-value" id="ratingMyBalance">0.000</div>
+        <div class="rating-header-rank" id="ratingMyRank">Место —</div>
+      </div>
+      <div class="rating-list" id="ratingList"></div>
+      <button class="btn-load-more" id="btnRatingMore">Загрузить ещё</button>
+    </section>
+
+    <!-- ---------- REWARDS ---------- -->
+    <section class="screen" id="screen-rewards" data-screen="rewards">
+      <div class="daily-case-card">
+        <div class="daily-case-title">Ежедневный кейс</div>
+        <div class="daily-case-items" id="dailyCaseItems"></div>
+        <div class="daily-case-timer" id="dailyCaseTimer">Возвращайтесь через —</div>
+        <button class="btn-claim" id="btnClaimDaily" disabled>Забрать награду</button>
+      </div>
+
+      <div class="section-title">Ежедневные награды</div>
+      <div class="rewards-grid" id="rewardsGrid"></div>
+    </section>
+
+    <!-- ---------- INVITE ---------- -->
+    <section class="screen" id="screen-invite" data-screen="invite">
+      <div class="invite-card">
+        <div class="invite-title">Приглашай друзей</div>
+        <div class="invite-sub">Получай бонус за каждого приглашённого игрока</div>
+        <div class="invite-link-box">
+          <span id="inviteLinkText">—</span>
+          <button id="btnCopyLink">Копировать</button>
+        </div>
+        <button class="btn-share" id="btnShareTelegram">Поделиться в Telegram</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-chip">
+          <div class="stat-label">Приглашено</div>
+          <div class="stat-value" id="inviteCount">0</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-label">Заработано</div>
+          <div class="stat-value" id="inviteEarnings">0.00 ◆</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item" data-target="inventory">
+      <span class="nav-icon">🎒</span>
+      <span class="nav-label">Инвентарь</span>
     </button>
-    <p class="bet-panel__hint">Раунд стартует автоматически, как только наберётся 2+ игрока — смотрите таймер вверху.</p>
-  </section>
+    <button class="nav-item" data-target="invite">
+      <span class="nav-icon">👥</span>
+      <span class="nav-label">Пригласить</span>
+      <span class="nav-badge hidden" id="badgeInvite"></span>
+    </button>
+    <button class="nav-item nav-item-main" data-target="home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Главная</span>
+    </button>
+    <button class="nav-item" data-target="rating">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">Рейтинг</span>
+    </button>
+    <button class="nav-item" data-target="rewards">
+      <span class="nav-icon">🎁</span>
+      <span class="nav-label">Награды</span>
+      <span class="nav-badge hidden" id="badgeRewards"></span>
+    </button>
+  </nav>
+</div>
 
-  <!-- ===== PARTICIPANTS ===== -->
-  <section class="participants glass" id="participantsSection">
-    <h2 class="section-title">Участники раунда</h2>
-    <div class="participants__list" id="participantsList">
-      <div class="empty-hint">Пока никто не поставил</div>
+<!-- ===================== BET MODAL (bottom sheet) ===================== -->
+<div class="sheet-overlay hidden" id="betSheetOverlay">
+  <div class="sheet" id="betSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Сделать ставку</div>
+    <div class="sheet-balance">Баланс: <span id="sheetBalance">0.00</span> <span class="ton-icon">◆</span></div>
+    <input type="number" id="betAmountInput" class="bet-input" placeholder="0.00" min="0" step="0.01">
+    <div class="bet-quick-row">
+      <button data-amt="0.1">0.1</button>
+      <button data-amt="0.5">0.5</button>
+      <button data-amt="1">1</button>
+      <button data-amt="5">5</button>
+      <button data-amt="10">10</button>
+      <button data-amt="max" id="btnBetMax">MAX</button>
     </div>
-  </section>
+    <button class="btn-confirm-bet" id="btnConfirmBet">Сделать ставку</button>
+  </div>
+</div>
 
-  <!-- ===== TABS: HISTORY / LEADERBOARD ===== -->
-  <section class="tabs glass">
-    <div class="tabs__head">
-      <button class="tabs__btn is-active" data-tab="history">История раундов</button>
-      <button class="tabs__btn" data-tab="leaders">🏆 Топ игроков</button>
-    </div>
-    <div class="tabs__body">
-      <div class="tab-panel is-active" id="tab-history">
-        <div class="empty-hint" id="historyEmpty">Раундов ещё не было</div>
-        <div class="history-list" id="historyList"></div>
-      </div>
-      <div class="tab-panel" id="tab-leaders">
-        <div class="empty-hint" id="leadersEmpty">Нет данных</div>
-        <div class="leaders-list" id="leadersList"></div>
-      </div>
-    </div>
-  </section>
-
+<!-- ===================== WIN MODAL ===================== -->
+<div class="sheet-overlay hidden" id="winOverlay">
+  <div class="win-modal" id="winModal">
+    <div class="win-emoji">🏆</div>
+    <div class="win-title" id="winTitle">Вы выиграли!</div>
+    <div class="win-amount" id="winAmount">+0.00 ◆</div>
+    <button class="btn-confirm-bet" id="btnCloseWin">Отлично</button>
+  </div>
 </div>
 
 <script src="app.js"></script>
