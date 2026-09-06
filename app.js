@@ -1022,18 +1022,46 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", bootstrap);
+let topupInProgress = false;
+
 async function topupCrypto() {
-  const amount = prompt("Введите сумму в TON:");
-  if (!amount || amount <= 0) return;
-  
-  const res = await Api.post("/api/crypto/create-invoice", { amount: parseFloat(amount), asset: "TON" });
-  if (res.ok) {
-    if (Tg.tg && Tg.tg.openTelegramLink) {
+  if (topupInProgress) return;
+
+  const amountRaw = prompt("Введите сумму в TON:");
+  if (amountRaw === null) return;
+
+  const amount = parseFloat(String(amountRaw).replace(",", "."));
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    toast("Введите корректную сумму", "error");
+    return;
+  }
+
+  topupInProgress = true;
+
+  try {
+    const res = await Api.post("/api/crypto/create-invoice", {
+      amount: amount,
+      asset: "TON"
+    });
+
+    console.log("Ответ создания счёта:", res);
+
+    if (!res || !res.ok || !res.invoice_url) {
+      toast(res?.error || "Ошибка создания счёта", "error");
+      return;
+    }
+
+    if (Tg.tg && typeof Tg.tg.openTelegramLink === "function") {
       Tg.tg.openTelegramLink(res.invoice_url);
     } else {
       window.open(res.invoice_url, "_blank");
     }
-  } else {
-    toast("Ошибка создания счёта", "error");
+
+  } catch (err) {
+    console.error("Ошибка создания счёта:", err);
+    toast("Не удалось создать счёт", "error");
+  } finally {
+    topupInProgress = false;
   }
 }
