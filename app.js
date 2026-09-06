@@ -1048,7 +1048,12 @@ async function topupCrypto() {
     console.log("Ответ создания счёта:", res);
 
     if (!res || !res.ok || !res.invoice_url) {
-      toast(res?.error || "Ошибка создания счёта", "error");
+      toast(
+  typeof res?.error === "object"
+    ? (res.error?.message || JSON.stringify(res.error))
+    : (res?.error || "Ошибка создания счёта"),
+  "error"
+);
       return;
     }
 
