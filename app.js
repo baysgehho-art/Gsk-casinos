@@ -1022,3 +1022,18 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", bootstrap);
+async function topupCrypto() {
+  const amount = prompt("Введите сумму в TON:");
+  if (!amount || amount <= 0) return;
+  
+  const res = await Api.post("/api/crypto/create-invoice", { amount: parseFloat(amount), asset: "TON" });
+  if (res.ok) {
+    if (Tg.tg && Tg.tg.openTelegramLink) {
+      Tg.tg.openTelegramLink(res.invoice_url);
+    } else {
+      window.open(res.invoice_url, "_blank");
+    }
+  } else {
+    toast("Ошибка создания счёта", "error");
+  }
+}
