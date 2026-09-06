@@ -3,7 +3,7 @@
 // ============================================================
 
 // ---------- CONFIG ----------
-const API_URL = "https://YOUR-USERNAME.pythonanywhere.com"; // <-- замени на свой адрес PythonAnywhere
+const API_URL = "https://lagger077.pythonanywhere.com";
 
 // ============================================================
 // TELEGRAM INIT
