@@ -412,24 +412,29 @@ button, input {
 .dim-cell { opacity: 0.28; filter: grayscale(0.5); }
 @keyframes winnerPulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
 
-.reveal-marker {
+.reveal-ball {
   position: absolute;
-  width: 26px; height: 26px;
   border-radius: 50%;
-  border: 3px solid #fff;
-  box-shadow: 0 0 16px 4px rgba(255,255,255,0.55), 0 0 0 6px rgba(255,255,255,0.12);
-  transform: translate(-50%, -50%);
-  left: 50%; top: 50%;
-  opacity: 0;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f0f0f0 45%, #c0c0c0 100%);
+  box-shadow: 0 0 14px 5px rgba(255,255,255,0.55), 0 0 40px 12px rgba(255,255,255,0.15);
   pointer-events: none;
   z-index: 20;
-  transition: left .1s ease-out, top .1s ease-out, opacity .2s ease;
+  opacity: 0;
+  transition: opacity .2s ease;
 }
-.reveal-marker.landed { animation: markerLand .6s ease; }
-@keyframes markerLand {
+.reveal-ball.landed { animation: ballLand .6s ease forwards; }
+@keyframes ballLand {
   0% { transform: translate(-50%,-50%) scale(1); }
-  40% { transform: translate(-50%,-50%) scale(1.9); box-shadow: 0 0 30px 10px rgba(255,255,255,0.75); }
+  40% { transform: translate(-50%,-50%) scale(1.6); box-shadow: 0 0 24px 10px rgba(255,255,255,0.8); }
   100% { transform: translate(-50%,-50%) scale(1); }
+}
+
+.square-wrap.reveal-mode .square-main,
+.square-wrap.reveal-mode .square-corner,
+.square-wrap.reveal-mode .square-empty {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity .3s ease;
 }
 
 .square-status-overlay {

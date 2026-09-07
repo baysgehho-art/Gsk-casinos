@@ -390,18 +390,6 @@ const Pvp = {
   },
 
   lastSpinRoundId: null,
-  // Returns the {x%, y%} center point of a player cell within the square,
-  // used as waypoints for the reveal marker.
-  cellCenter(cell) {
-    if (cell.classList.contains("square-main")) return { x: 50, y: 50 };
-    const w = parseFloat(cell.style.width) || 20;
-    const h = parseFloat(cell.style.height) || 20;
-    if (cell.classList.contains("corner-tl")) return { x: w * 0.32, y: h * 0.32 };
-    if (cell.classList.contains("corner-tr")) return { x: 100 - w * 0.32, y: h * 0.32 };
-    if (cell.classList.contains("corner-bl")) return { x: w * 0.32, y: 100 - h * 0.32 };
-    if (cell.classList.contains("corner-br")) return { x: 100 - w * 0.32, y: 100 - h * 0.32 };
-    return { x: 50, y: 50 };
-  },
 
   revealWinner(game) {
     if (this.lastSpinRoundId === game.round_id) return;
@@ -411,64 +399,141 @@ const Pvp = {
     if (!cells.length) return;
     Tg.haptic("impact", "medium");
 
-    let marker = document.getElementById("revealMarker");
-    if (!marker) {
-      marker = document.createElement("div");
-      marker.id = "revealMarker";
-      marker.className = "reveal-marker";
-      wrap.appendChild(marker);
-    }
-    marker.classList.remove("landed");
-    marker.style.opacity = "1";
-
-    // The marker hops between players and slows down step by step, landing
-    // on the real winner last — a ball settling into its pocket, not just
-    // the cells themselves fading in and out.
     const winnerCell = cells.find((c) => String(game.winner_user_id) === c.dataset.uid) || cells[0];
-    const steps = 12;
-    const sequence = [];
-    for (let i = 0; i < steps - 1; i++) {
-      sequence.push(cells[Math.floor(Math.random() * cells.length)]);
+    if (!winnerCell) return;
+
+    const winnerPlayer = game.players.find(
+      (p) => String(p.user_id) === String(game.winner_user_id)
+    );
+    const winnerColor = winnerPlayer ? winnerPlayer.color : "#28d17c";
+
+    let ball = document.getElementById("revealBall");
+    if (!ball) {
+      ball = document.createElement("div");
+      ball.id = "revealBall";
+      ball.className = "reveal-ball";
+      wrap.appendChild(ball);
     }
-    sequence.push(winnerCell);
 
-    let delay = 90;
-    let i = 0;
-    const tick = () => {
-      const cell = sequence[i];
-      const pos = this.cellCenter(cell);
-      marker.style.left = pos.x + "%";
-      marker.style.top = pos.y + "%";
-      Tg.haptic("selection");
-      i++;
-      delay *= 1.26; // ease-out — each hop a little slower than the last
-      if (i < sequence.length) {
-        setTimeout(tick, delay);
+    wrap.classList.add("reveal-mode");
+    wrap.style.background = winnerColor;
+
+    const rect = wrap.getBoundingClientRect();
+    const size = rect.width;
+
+    const cellRect = winnerCell.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const targetX = cellRect.left - wrapRect.left + cellRect.width / 2;
+    const targetY = cellRect.top - wrapRect.top + cellRect.height / 2;
+
+    let x = size / 2;
+    let y = size / 2;
+
+    const angle = Math.random() * Math.PI * 2;
+    const startSpeed = size * 0.016;
+    let vx = Math.cos(angle) * startSpeed;
+    let vy = Math.sin(angle) * startSpeed;
+
+    const ballRadius = Math.max(12, size * 0.035);
+
+    let running = true;
+    let landing = false;
+    let rafId;
+
+    const animate = () => {
+      if (!running) return;
+
+      if (!landing) {
+        vx *= 0.987;
+        vy *= 0.987;
+
+        x += vx;
+        y += vy;
+
+        const damp = 0.72;
+        if (x < ballRadius) {
+          x = ballRadius;
+          vx = Math.abs(vx) * damp;
+        } else if (x > size - ballRadius) {
+          x = size - ballRadius;
+          vx = -Math.abs(vx) * damp;
+        }
+
+        if (y < ballRadius) {
+          y = ballRadius;
+          vy = Math.abs(vy) * damp;
+        } else if (y > size - ballRadius) {
+          y = size - ballRadius;
+          vy = -Math.abs(vy) * damp;
+        }
+
+        if (Math.hypot(vx, vy) < size * 0.0018) {
+          landing = true;
+        }
       } else {
-        setTimeout(() => {
-          marker.classList.add("landed");
-          cells.forEach((c) => {
-            if (c === winnerCell) c.classList.add("winner-cell");
-            else c.classList.add("dim-cell");
-          });
+        const k = 0.09;
+        x += (targetX - x) * k;
+        y += (targetY - y) * k;
+        if (Math.hypot(targetX - x, targetY - y) < 1.5) {
+          x = targetX;
+          y = targetY;
+          running = false;
+        }
+      }
 
-          setTimeout(() => {
-            const isMe = State.user && game.winner_user_id === State.user.id;
-            if (isMe) {
-              Tg.haptic("notification", "success");
-              User.refreshBalance();
-              showWinModal(`Вы выиграли!`, `+${fmt(game.winner_amount)} ◆`);
-            } else {
-              toast(`Победил ${game.winner_name} — ${fmt(game.winner_amount)} ◆ (${game.winner_chance}%)`, "info");
-            }
-            cells.forEach((c) => c.classList.remove("winner-cell", "dim-cell"));
-            marker.style.opacity = "0";
-            marker.classList.remove("landed");
-          }, 1400);
-        }, 150);
+      ball.style.left = x + "px";
+      ball.style.top = y + "px";
+      ball.style.width = ballRadius * 2 + "px";
+      ball.style.height = ballRadius * 2 + "px";
+      ball.style.transform = "translate(-50%, -50%)";
+
+      if (running) {
+        rafId = requestAnimationFrame(animate);
+      } else {
+        finish();
       }
     };
-    tick();
+
+    const finish = () => {
+      ball.classList.add("landed");
+      winnerCell.classList.add("winner-cell");
+      cells.forEach((c) => {
+        if (c !== winnerCell) c.classList.add("dim-cell");
+      });
+
+      setTimeout(() => {
+        const isMe = State.user && game.winner_user_id === State.user.id;
+        if (isMe) {
+          Tg.haptic("notification", "success");
+          User.refreshBalance();
+          showWinModal(`Вы выиграли!`, `+${fmt(game.winner_amount)} ◆`);
+        } else {
+          toast(
+            `Победил ${game.winner_name} — ${fmt(game.winner_amount)} ◆ (${game.winner_chance}%)`,
+            "info"
+          );
+        }
+        cells.forEach((c) => c.classList.remove("winner-cell", "dim-cell"));
+        wrap.classList.remove("reveal-mode");
+        wrap.style.background = "";
+        ball.style.opacity = "0";
+        ball.classList.remove("landed");
+        setTimeout(() => {
+          ball.style.left = "50%";
+          ball.style.top = "50%";
+        }, 300);
+      }, 1400);
+    };
+
+    ball.style.opacity = "1";
+    ball.classList.remove("landed");
+    ball.style.left = x + "px";
+    ball.style.top = y + "px";
+    ball.style.width = ballRadius * 2 + "px";
+    ball.style.height = ballRadius * 2 + "px";
+
+    if (rafId) cancelAnimationFrame(rafId);
+    requestAnimationFrame(animate);
   },
 
   // Biggest bettor fills the whole square with their avatar centered on it;
