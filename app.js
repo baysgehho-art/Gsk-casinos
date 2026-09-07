@@ -390,32 +390,85 @@ const Pvp = {
   },
 
   lastSpinRoundId: null,
+  // Returns the {x%, y%} center point of a player cell within the square,
+  // used as waypoints for the reveal marker.
+  cellCenter(cell) {
+    if (cell.classList.contains("square-main")) return { x: 50, y: 50 };
+    const w = parseFloat(cell.style.width) || 20;
+    const h = parseFloat(cell.style.height) || 20;
+    if (cell.classList.contains("corner-tl")) return { x: w * 0.32, y: h * 0.32 };
+    if (cell.classList.contains("corner-tr")) return { x: 100 - w * 0.32, y: h * 0.32 };
+    if (cell.classList.contains("corner-bl")) return { x: w * 0.32, y: 100 - h * 0.32 };
+    if (cell.classList.contains("corner-br")) return { x: 100 - w * 0.32, y: 100 - h * 0.32 };
+    return { x: 50, y: 50 };
+  },
+
   revealWinner(game) {
     if (this.lastSpinRoundId === game.round_id) return;
     this.lastSpinRoundId = game.round_id;
     const wrap = document.getElementById("squareWrap");
+    const cells = Array.from(wrap.querySelectorAll("[data-uid]"));
+    if (!cells.length) return;
     Tg.haptic("impact", "medium");
 
-    setTimeout(() => {
-      wrap.querySelectorAll("[data-uid]").forEach((cell) => {
-        if (String(game.winner_user_id) === cell.dataset.uid) cell.classList.add("winner-cell");
-        else cell.classList.add("dim-cell");
-      });
-    }, 500);
+    let marker = document.getElementById("revealMarker");
+    if (!marker) {
+      marker = document.createElement("div");
+      marker.id = "revealMarker";
+      marker.className = "reveal-marker";
+      wrap.appendChild(marker);
+    }
+    marker.classList.remove("landed");
+    marker.style.opacity = "1";
 
-    setTimeout(() => {
-      const isMe = State.user && game.winner_user_id === State.user.id;
-      if (isMe) {
-        Tg.haptic("notification", "success");
-        User.refreshBalance();
-        showWinModal(`Вы выиграли!`, `+${fmt(game.winner_amount)} ◆`);
+    // The marker hops between players and slows down step by step, landing
+    // on the real winner last — a ball settling into its pocket, not just
+    // the cells themselves fading in and out.
+    const winnerCell = cells.find((c) => String(game.winner_user_id) === c.dataset.uid) || cells[0];
+    const steps = 12;
+    const sequence = [];
+    for (let i = 0; i < steps - 1; i++) {
+      sequence.push(cells[Math.floor(Math.random() * cells.length)]);
+    }
+    sequence.push(winnerCell);
+
+    let delay = 90;
+    let i = 0;
+    const tick = () => {
+      const cell = sequence[i];
+      const pos = this.cellCenter(cell);
+      marker.style.left = pos.x + "%";
+      marker.style.top = pos.y + "%";
+      Tg.haptic("selection");
+      i++;
+      delay *= 1.26; // ease-out — each hop a little slower than the last
+      if (i < sequence.length) {
+        setTimeout(tick, delay);
       } else {
-        toast(`Победил ${game.winner_name} — ${fmt(game.winner_amount)} ◆ (${game.winner_chance}%)`, "info");
+        setTimeout(() => {
+          marker.classList.add("landed");
+          cells.forEach((c) => {
+            if (c === winnerCell) c.classList.add("winner-cell");
+            else c.classList.add("dim-cell");
+          });
+
+          setTimeout(() => {
+            const isMe = State.user && game.winner_user_id === State.user.id;
+            if (isMe) {
+              Tg.haptic("notification", "success");
+              User.refreshBalance();
+              showWinModal(`Вы выиграли!`, `+${fmt(game.winner_amount)} ◆`);
+            } else {
+              toast(`Победил ${game.winner_name} — ${fmt(game.winner_amount)} ◆ (${game.winner_chance}%)`, "info");
+            }
+            cells.forEach((c) => c.classList.remove("winner-cell", "dim-cell"));
+            marker.style.opacity = "0";
+            marker.classList.remove("landed");
+          }, 1400);
+        }, 150);
       }
-      wrap.querySelectorAll("[data-uid]").forEach((cell) => {
-        cell.classList.remove("winner-cell", "dim-cell");
-      });
-    }, 3200);
+    };
+    tick();
   },
 
   // Biggest bettor fills the whole square with their avatar centered on it;
