@@ -397,7 +397,7 @@ const Pvp = {
     Tg.haptic("impact", "medium");
 
     setTimeout(() => {
-      wrap.querySelectorAll(".square-cell").forEach((cell) => {
+      wrap.querySelectorAll("[data-uid]").forEach((cell) => {
         if (String(game.winner_user_id) === cell.dataset.uid) cell.classList.add("winner-cell");
         else cell.classList.add("dim-cell");
       });
@@ -412,15 +412,15 @@ const Pvp = {
       } else {
         toast(`Победил ${game.winner_name} — ${fmt(game.winner_amount)} ◆ (${game.winner_chance}%)`, "info");
       }
-      wrap.querySelectorAll(".square-cell").forEach((cell) => {
+      wrap.querySelectorAll("[data-uid]").forEach((cell) => {
         cell.classList.remove("winner-cell", "dim-cell");
       });
     }, 3200);
   },
 
-  // Lays player bets out as a squarified treemap: each player's bet share
-  // of the total bank becomes a proportional rectangle of the square, with
-  // their avatar shown on top of it — bigger bet, bigger area.
+  // Biggest bettor fills the whole square with their avatar centered on it;
+  // everyone else gets a small triangular "corner flag" sized roughly by
+  // their bet — bigger bet, bigger corner. Tap any area for the exact numbers.
   renderSquareAreas(players) {
     const wrap = document.getElementById("squareWrap");
     wrap.innerHTML = "";
@@ -432,36 +432,36 @@ const Pvp = {
       return;
     }
 
-    const GRID = 100; // work in a 0-100 normalized square, independent of rendered px size
-    const MIN_FRACTION = 0.03; // floor so tiny bets still show a legible avatar
+    const sorted = players.slice().sort((a, b) => b.amount - a.amount);
+    const main = sorted[0];
+    const minors = sorted.slice(1, 5); // up to 4 corners
 
-    const total = players.reduce((s, p) => s + p.amount, 0) || 1;
-    let fracs = players.map((p) => Math.max(p.amount / total, MIN_FRACTION));
-    const fracSum = fracs.reduce((a, b) => a + b, 0) || 1;
-    fracs = fracs.map((f) => f / fracSum);
+    const mainCell = document.createElement("div");
+    mainCell.className = "square-main";
+    mainCell.dataset.uid = main.user_id;
+    mainCell.style.background = `linear-gradient(135deg, ${shadeColor(main.color, 22)}, ${shadeColor(main.color, -20)})`;
+    mainCell.innerHTML = `
+      <div class="square-main-avatar" style="background:${shadeColor(main.color, -6)}">${initials(main.name)}</div>
+      <div class="square-main-name">${escapeHtml(main.name)}</div>
+      <div class="square-main-amount">${fmt(main.amount)} ◆ · ${main.chance}%</div>
+    `;
+    mainCell.addEventListener("click", () => toast(`${main.name} — ${fmt(main.amount)} ◆ (${main.chance}%)`, "info"));
+    wrap.appendChild(mainCell);
 
-    const items = players.map((p, i) => ({ value: fracs[i] * (GRID * GRID), player: p }));
-    items.sort((a, b) => b.value - a.value);
-
-    const rects = squarifyTreemap(items, 0, 0, GRID, GRID);
-    rects.forEach((r) => {
-      const p = r.item.player;
-      const cell = document.createElement("div");
-      cell.className = "square-cell";
-      cell.dataset.uid = p.user_id;
-      cell.style.left = r.x + "%";
-      cell.style.top = r.y + "%";
-      cell.style.width = r.w + "%";
-      cell.style.height = r.h + "%";
-      cell.style.background = `linear-gradient(135deg, ${shadeColor(p.color, 18)}, ${shadeColor(p.color, -18)})`;
-
-      const small = Math.min(r.w, r.h) < 16;
-      const avatarSize = small ? 22 : 34;
-      cell.innerHTML = `
-        <div class="square-avatar" style="width:${avatarSize}px;height:${avatarSize}px;${small ? "font-size:9px;" : ""}">${initials(p.name)}</div>
-        ${!small ? `<div class="square-name">${escapeHtml(p.name)}</div><div class="square-amount">${fmt(p.amount)} ◆</div>` : ""}
-      `;
-      wrap.appendChild(cell);
+    const cornerClasses = ["corner-tl", "corner-br", "corner-tr", "corner-bl"];
+    const minorTotal = minors.reduce((s, p) => s + p.amount, 0) || 1;
+    minors.forEach((p, i) => {
+      const shareOfMinor = p.amount / minorTotal;
+      const sidePct = Math.min(42, Math.max(16, Math.sqrt(shareOfMinor) * 46));
+      const corner = document.createElement("div");
+      corner.className = `square-corner ${cornerClasses[i]}`;
+      corner.dataset.uid = p.user_id;
+      corner.style.width = sidePct + "%";
+      corner.style.height = sidePct + "%";
+      corner.style.background = p.color;
+      corner.innerHTML = `<div class="corner-badge" style="background:${shadeColor(p.color, 14)}">${initials(p.name)}</div>`;
+      corner.addEventListener("click", () => toast(`${p.name} — ${fmt(p.amount)} ◆ (${p.chance}%)`, "info"));
+      wrap.appendChild(corner);
     });
   },
 
@@ -509,65 +509,6 @@ const Pvp = {
     return true;
   },
 };
-
-// Squarified treemap layout (Bruls, Huizing, van Wijk).
-// Takes items shaped as {value, ...meta} whose values already sum to
-// roughly w*h, and returns [{item, x, y, w, h}, ...] rectangles that tile
-// the (x, y, w, h) container — bigger value, bigger (and squarer) rect.
-function squarifyTreemap(items, x, y, w, h) {
-  const result = [];
-  let remaining = items.slice();
-  let rect = { x, y, w, h };
-  let row = [];
-
-  function rowWorst(r, length) {
-    if (!r.length) return Infinity;
-    const sum = r.reduce((s, it) => s + it.value, 0);
-    const max = Math.max(...r.map((it) => it.value));
-    const min = Math.min(...r.map((it) => it.value));
-    const l2 = length * length;
-    const s2 = sum * sum;
-    return Math.max((l2 * max) / s2, s2 / (l2 * min));
-  }
-
-  function layoutRow(r, rx, ry, rw, rh) {
-    const sum = r.reduce((s, it) => s + it.value, 0);
-    if (rw >= rh) {
-      const stripW = rh > 0 ? sum / rh : 0;
-      let cy = ry;
-      r.forEach((it) => {
-        const ih = stripW > 0 ? it.value / stripW : 0;
-        result.push({ item: it, x: rx, y: cy, w: stripW, h: ih });
-        cy += ih;
-      });
-      return { x: rx + stripW, y: ry, w: rw - stripW, h: rh };
-    } else {
-      const stripH = rw > 0 ? sum / rw : 0;
-      let cx = rx;
-      r.forEach((it) => {
-        const iw = stripH > 0 ? it.value / stripH : 0;
-        result.push({ item: it, x: cx, y: ry, w: iw, h: stripH });
-        cx += iw;
-      });
-      return { x: rx, y: ry + stripH, w: rw, h: rh - stripH };
-    }
-  }
-
-  while (remaining.length) {
-    const length = Math.min(rect.w, rect.h);
-    const candidate = row.concat([remaining[0]]);
-    if (row.length === 0 || rowWorst(candidate, length) <= rowWorst(row, length)) {
-      row = candidate;
-      remaining = remaining.slice(1);
-    } else {
-      rect = layoutRow(row, rect.x, rect.y, rect.w, rect.h);
-      row = [];
-    }
-  }
-  if (row.length) rect = layoutRow(row, rect.x, rect.y, rect.w, rect.h);
-
-  return result;
-}
 
 // Lightens (positive percent) or darkens (negative) a "#rrggbb" color, used
 // to give each treemap cell a subtle diagonal gradient.

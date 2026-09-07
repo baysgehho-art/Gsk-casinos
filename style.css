@@ -347,44 +347,70 @@ button, input {
   color: var(--muted); font-size: 13px;
 }
 
-.square-cell {
+/* Dominant bettor: fills the whole square, avatar centered on top */
+.square-main {
   position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  box-sizing: border-box;
-  border: 1.5px solid rgba(10,11,15,0.65);
-  overflow: hidden;
-  transition: filter .3s ease, opacity .3s ease;
+  gap: 8px;
+  cursor: pointer;
   animation: cellPop .3s ease;
+  transition: filter .3s ease, opacity .3s ease;
 }
 @keyframes cellPop {
-  from { transform: scale(0.85); opacity: 0; }
+  from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
-.square-cell.winner-cell { outline: 3px solid #fff; outline-offset: -3px; z-index: 5; animation: winnerPulse 1s infinite; }
-.square-cell.dim-cell { opacity: 0.28; filter: grayscale(0.5); }
-@keyframes winnerPulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
-
-.square-avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: rgba(255,255,255,0.18);
+.square-main-avatar {
+  width: 30%; height: 30%; min-width: 64px; min-height: 64px;
+  max-width: 104px; max-height: 104px;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 12px; color: #04121a;
+  font-weight: 800; font-size: 30px; color: #fff;
+  border: 3px solid rgba(255,255,255,0.4);
+  box-shadow: 0 0 40px rgba(255,255,255,0.15) inset;
+}
+.square-main-name {
+  font-size: 13.5px; font-weight: 700; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.square-main-amount {
+  font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* Everyone else: a small triangular "torn corner" flag, roughly sized by bet */
+.square-corner {
+  position: absolute;
+  cursor: pointer;
+  z-index: 3;
+  animation: cellPop .3s ease;
+  transition: filter .3s ease, opacity .3s ease;
+}
+.square-corner.corner-tl { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.square-corner.corner-tr { top: 0; right: 0; clip-path: polygon(100% 0, 100% 100%, 0 0); }
+.square-corner.corner-bl { bottom: 0; left: 0; clip-path: polygon(0 100%, 0 0, 100% 100%); }
+.square-corner.corner-br { bottom: 0; right: 0; clip-path: polygon(100% 100%, 0 100%, 100% 0); }
+
+.corner-badge {
+  position: absolute;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 9.5px; color: #04121a;
   border: 2px solid rgba(255,255,255,0.55);
-  flex-shrink: 0;
 }
-.square-name {
-  font-size: 10px; font-weight: 700; color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-  max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.square-amount {
-  font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,0.85);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-}
+.corner-tl .corner-badge { top: 6px; left: 6px; }
+.corner-tr .corner-badge { top: 6px; right: 6px; }
+.corner-bl .corner-badge { bottom: 6px; left: 6px; }
+.corner-br .corner-badge { bottom: 6px; right: 6px; }
+
+.winner-cell { animation: winnerPulse 1s infinite; z-index: 5; }
+.dim-cell { opacity: 0.28; filter: grayscale(0.5); }
+@keyframes winnerPulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
 
 .square-status-overlay {
   position: absolute;
